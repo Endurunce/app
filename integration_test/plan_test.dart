@@ -17,20 +17,21 @@ void main() {
     await tapText(t, 'Registreren');
     await settle(t);
 
+    // Fase 1: account aanmaken
     await fillField(t, 0, uniqueEmail());
     await fillField(t, 1, kTestPassword);
-    await tapText(t, 'Account aanmaken');
-    await wait(t, ms: 3000);
+    await tapText(t, 'Volgende');
+    await wait(t, ms: 2500);
 
-    // Stap 1
+    // Fase 2: persoonlijk (naam/leeftijd/geslacht)
     await fillField(t, 0, 'Test Runner');
     await fillField(t, 1, '28');
     await tapText(t, 'Man');
     await settle(t);
-    await tapText(t, 'Volgende');
-    await settle(t);
+    await tapText(t, 'Plan opmaken');
+    await wait(t, ms: 1000);
 
-    // Stap 2 — ervaring
+    // Intake — stap 1 is overgeslagen (prefilled), start bij stap 2 (ervaring)
     await tapText(t, '2–5 jaar');
     await settle(t);
     await tapText(t, 'Volgende');
@@ -81,19 +82,24 @@ void main() {
       app.main();
       await settle(t);
 
-      // Inloggen als niet-bestaande user → error, of direct plan scherm
-      // Hier testen we de lege staat door een verse gebruiker aan te maken
-      // die de intake nog niet heeft afgerond.
+      // Registreer een verse gebruiker en sluit de intake direct
       await tapText(t, 'Registreren');
       await settle(t);
 
       await fillField(t, 0, uniqueEmail());
       await fillField(t, 1, kTestPassword);
-      await tapText(t, 'Account aanmaken');
-      await wait(t, ms: 3000);
+      await tapText(t, 'Volgende');
+      await wait(t, ms: 2500);
 
-      // Gebruiker is in intake — klik annuleren (close)
-      final closeBtn = find.byType(CloseButton);
+      await fillField(t, 0, 'Test Runner');
+      await fillField(t, 1, '28');
+      await tapText(t, 'Man');
+      await settle(t);
+      await tapText(t, 'Plan opmaken');
+      await wait(t, ms: 1000);
+
+      // Gebruiker is in intake — klik sluitknop (×)
+      final closeBtn = find.byIcon(Icons.close);
       if (closeBtn.evaluate().isNotEmpty) {
         await t.tap(closeBtn.first);
         await settle(t);
@@ -113,10 +119,17 @@ void main() {
 
       await fillField(t, 0, uniqueEmail());
       await fillField(t, 1, kTestPassword);
-      await tapText(t, 'Account aanmaken');
-      await wait(t, ms: 3000);
+      await tapText(t, 'Volgende');
+      await wait(t, ms: 2500);
 
-      final closeBtn = find.byType(CloseButton);
+      await fillField(t, 0, 'Test Runner');
+      await fillField(t, 1, '28');
+      await tapText(t, 'Man');
+      await settle(t);
+      await tapText(t, 'Plan opmaken');
+      await wait(t, ms: 1000);
+
+      final closeBtn = find.byIcon(Icons.close);
       if (closeBtn.evaluate().isNotEmpty) {
         await t.tap(closeBtn.first);
         await settle(t);
@@ -220,8 +233,14 @@ void main() {
     testWidgets('Uitloggen navigeert terug naar loginscherm', (t) async {
       await setupPlanScreen(t);
 
-      // Uitlog-knop in de AppBar
-      await t.tap(find.byIcon(Icons.logout_outlined).first);
+      // Ga naar het Profiel-tab
+      await tapText(t, 'Profiel');
+      await settle(t);
+
+      // Scroll naar de uitlogknop en tik erop
+      await scrollDown(t, dy: -600);
+      await settle(t);
+      await tapText(t, 'Uitloggen');
       await settle(t);
 
       seeText('Inloggen');

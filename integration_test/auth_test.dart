@@ -46,8 +46,8 @@ void main() {
       await tapText(t, 'Registreren');
       await settle(t);
 
-      seeText('Account aanmaken');
       seeText('E-mailadres');
+      seeText('Volgende');
     });
 
     testWidgets('Volledige registratie → intakescherm', (t) async {
@@ -58,11 +58,20 @@ void main() {
       await tapText(t, 'Registreren');
       await settle(t);
 
+      // Fase 1: account
       final email = uniqueEmail();
       await fillField(t, 0, email);
       await fillField(t, 1, kTestPassword);
-      await tapText(t, 'Account aanmaken');
-      await wait(t, ms: 3000);
+      await tapText(t, 'Volgende');
+      await wait(t, ms: 2500);
+
+      // Fase 2: persoonlijk
+      await fillField(t, 0, 'Test Runner');
+      await fillField(t, 1, '28');
+      await tapText(t, 'Man');
+      await settle(t);
+      await tapText(t, 'Plan opmaken');
+      await wait(t, ms: 1000);
 
       // Na registratie moet de intake starten
       seeText('Jouw plan opmaken');
