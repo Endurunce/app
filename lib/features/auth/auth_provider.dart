@@ -90,6 +90,39 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  Future<bool> loginWithStrava() async {
+    state = state.copyWith(loading: true, clearError: true);
+    try {
+      final client = ref.read(apiClientProvider);
+      final stateParam = kIsWeb ? 'login_web' : 'login';
+      final data = await client.get('/api/auth/strava?state=$stateParam');
+      final authUrl = data['auth_url'] as String;
+
+      if (kIsWeb) {
+        await launchUrl(Uri.parse(authUrl), webOnlyWindowName: '_self');
+        return false;
+      }
+
+      final result = await FlutterWebAuth2.authenticate(
+        url: authUrl,
+        callbackUrlScheme: 'endurunce',
+      );
+
+      final uri = Uri.parse(result);
+      final token = uri.queryParameters['token'];
+      final email = uri.queryParameters['email'] ?? '';
+
+      if (token == null) throw Exception('Geen token ontvangen');
+
+      await saveToken(token);
+      state = state.copyWith(loading: false, token: token, email: email);
+      return true;
+    } catch (e) {
+      state = state.copyWith(loading: false, error: 'Strava login mislukt. Probeer opnieuw.');
+      return false;
+    }
+  }
+
   Future<bool> loginWithGoogle() async {
     state = state.copyWith(loading: true, clearError: true);
     try {

@@ -36,6 +36,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (ok && mounted) context.go('/plan');
   }
 
+  Future<void> _stravaLogin() async {
+    final ok = await ref.read(authProvider.notifier).loginWithStrava();
+    if (ok && mounted) context.go('/plan');
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
@@ -125,6 +130,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       icon: _GoogleIcon(),
                       label: const Text('Doorgaan met Google',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: auth.loading ? null : _stravaLogin,
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFFC4C02)),
+                        foregroundColor: const Color(0xFFFC4C02),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.directions_run, size: 18),
+                      label: const Text('Doorgaan met Strava',
                           style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
                   ],
