@@ -125,6 +125,30 @@ class ProfileNotifier extends Notifier<ProfileState> {
       state = state.copyWith(loading: false);
     }
   }
+
+  Future<bool> update({
+    String? name,
+    int? age,
+    String? gender,
+    double? weeklyKm,
+    String? runningYears,
+  }) async {
+    try {
+      final client = ref.read(apiClientProvider);
+      final body = <String, dynamic>{
+        if (name != null) 'name': name,
+        if (age != null) 'age': age,
+        if (gender != null) 'gender': gender,
+        if (weeklyKm != null) 'weekly_km': weeklyKm,
+        if (runningYears != null) 'running_years': runningYears,
+      };
+      await client.patch('/api/profiles/me', data: body);
+      await load();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
 final profileProvider = NotifierProvider<ProfileNotifier, ProfileState>(ProfileNotifier.new);

@@ -33,13 +33,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final plan    = ref.watch(planProvider);
     final strava  = ref.watch(stravaProvider);
 
-    // Statistieken uit het plan
     int totalSessions = 0;
     int completedSessions = 0;
     if (plan.plan != null) {
       for (final week in plan.plan!.weeks) {
         final active = week.activeDays;
-        totalSessions    += active.length;
+        totalSessions     += active.length;
         completedSessions += active.where((d) => d.completed).length;
       }
     }
@@ -104,7 +103,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // ── Planvoortgang ─────────────────────────────────────────
+                // ── Trainingsplan ─────────────────────────────────────────
                 if (plan.plan != null) ...[
                   AnimatedListItem(
                     index: 0,
@@ -141,21 +140,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ],
 
                 // ── Persoonlijk ───────────────────────────────────────────
-                if (profile.profile != null)
-                  AnimatedListItem(
-                    index: 1,
-                    child: _SectionCard(
-                      title: 'Profiel',
-                      children: [
-                        _InfoRow(icon: '🎂', label: 'Leeftijd',   value: '${profile.profile!.age} jaar'),
-                        _InfoRow(icon: '⚧',  label: 'Geslacht',   value: profile.profile!.genderLabel),
-                        _InfoRow(icon: '🏃', label: 'Ervaring',   value: profile.profile!.runningYearsLabel),
-                        _InfoRow(icon: '📏', label: 'Weekkm',     value: '${profile.profile!.weeklyKm.round()} km'),
-                      ],
+                AnimatedListItem(
+                  index: 1,
+                  child: _SectionCard(
+                    title: 'Profiel',
+                    trailing: profile.profile == null ? null : IconButton(
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      tooltip: 'Bewerken',
+                      color: AppColors.muted,
+                      onPressed: () => _openEditSheet(context, profile.profile!),
                     ),
+                    children: profile.loading
+                        ? [const Center(child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: CircularProgressIndicator(strokeWidth: 2)))]
+                        : profile.profile == null
+                            ? [Text('Geen profieldata', style: Theme.of(context).textTheme.bodySmall)]
+                            : [
+                                _InfoRow(icon: '👤', label: 'Naam',     value: profile.profile!.name),
+                                _InfoRow(icon: '🎂', label: 'Leeftijd', value: '${profile.profile!.age} jaar'),
+                                _InfoRow(icon: '⚧',  label: 'Geslacht', value: profile.profile!.genderLabel),
+                                _InfoRow(icon: '🏃', label: 'Ervaring', value: profile.profile!.runningYearsLabel),
+                                _InfoRow(icon: '📏', label: 'Weekkm',   value: '${profile.profile!.weeklyKm.round()} km'),
+                              ],
                   ),
+                ),
 
-                if (profile.profile != null) const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
                 // ── Strava ────────────────────────────────────────────────
                 AnimatedListItem(
@@ -244,12 +255,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     title: 'Account',
                     children: [
                       _ActionRow(
-                        icon:  Icons.edit_outlined,
-                        label: 'Nieuw trainingsplan aanmaken',
-                        onTap: () => context.go('/intake'),
-                      ),
-                      const Divider(height: 20),
-                      _ActionRow(
                         icon:  Icons.logout_outlined,
                         label: 'Uitloggen',
                         color: AppColors.error,
@@ -271,6 +276,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  void _openEditSheet(BuildContext context, UserProfile profile) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => _EditProfileSheet(
+        profile: profile,
+        onSave: (name, age, gender, weeklyKm, runningYears) async {
+          final ok = await ref.read(profileProvider.notifier).update(
+            name:         name,
+            age:          age,
+            gender:       gender,
+            weeklyKm:     weeklyKm,
+            runningYears: runningYears,
+          );
+          return ok;
+        },
+      ),
+    );
+  }
+
   String _formatDate(String isoDate) {
     try {
       final d = DateTime.parse(isoDate);
@@ -280,6 +309,212 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } catch (_) {
       return isoDate;
     }
+  }
+}
+
+// ── Edit profile sheet ────────────────────────────────────────────────────────
+
+typedef _SaveCallback = Future<bool> Function(
+    String name, int age, String gender, double weeklyKm, String runningYears);
+
+class _EditProfileSheet extends StatefulWidget {
+  final UserProfile profile;
+  final _SaveCallback onSave;
+
+  const _EditProfileSheet({required this.profile, required this.onSave});
+
+  @override
+  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends State<_EditProfileSheet> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _ageCtrl;
+  late String  _gender;
+  late double  _weeklyKm;
+  late String  _runningYears;
+  bool _saving = false;
+  bool _error  = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl    = TextEditingController(text: widget.profile.name);
+    _ageCtrl     = TextEditingController(text: widget.profile.age.toString());
+    _gender      = widget.profile.gender;
+    _weeklyKm    = widget.profile.weeklyKm;
+    _runningYears = widget.profile.runningYears;
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _ageCtrl.dispose();
+    super.dispose();
+  }
+
+  bool get _valid =>
+      _nameCtrl.text.trim().isNotEmpty &&
+      int.tryParse(_ageCtrl.text.trim()) != null;
+
+  Future<void> _save() async {
+    final age = int.tryParse(_ageCtrl.text.trim());
+    if (age == null) return;
+    setState(() { _saving = true; _error = false; });
+    final ok = await widget.onSave(
+      _nameCtrl.text.trim(), age, _gender, _weeklyKm, _runningYears);
+    if (!mounted) return;
+    if (ok) {
+      Navigator.pop(context);
+    } else {
+      setState(() { _saving = false; _error = true; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Row(children: [
+            Expanded(child: Text('Profiel bewerken',
+                style: Theme.of(context).textTheme.titleMedium)),
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ]),
+          const SizedBox(height: 20),
+
+          // Naam
+          TextField(
+            controller: _nameCtrl,
+            textInputAction: TextInputAction.next,
+            style: const TextStyle(color: AppColors.onBg),
+            decoration: const InputDecoration(
+              labelText: 'Naam',
+              prefixIcon: Icon(Icons.person_outline, size: 20),
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 14),
+
+          // Leeftijd
+          TextField(
+            controller: _ageCtrl,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(color: AppColors.onBg),
+            decoration: const InputDecoration(
+              labelText: 'Leeftijd',
+              prefixIcon: Icon(Icons.cake_outlined, size: 20),
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 20),
+
+          // Geslacht
+          Text('Geslacht',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1)),
+          const SizedBox(height: 8),
+          _GenderChips(
+            selected: _gender,
+            onSelect: (v) => setState(() => _gender = v),
+          ),
+          const SizedBox(height: 20),
+
+          // Weekkilometrage
+          Row(children: [
+            Text('Weekkilometrage',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1)),
+            const Spacer(),
+            Text('${_weeklyKm.round()} km',
+                style: const TextStyle(
+                    color: AppColors.brand, fontWeight: FontWeight.w700, fontSize: 13)),
+          ]),
+          Slider(
+            value: _weeklyKm,
+            min: 10, max: 120, divisions: 22,
+            label: '${_weeklyKm.round()} km',
+            onChanged: (v) => setState(() => _weeklyKm = v),
+          ),
+          const SizedBox(height: 16),
+
+          // Ervaring
+          Text('Hardloopervaring',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1)),
+          const SizedBox(height: 8),
+          _ExperienceChips(
+            selected: _runningYears,
+            onSelect: (v) => setState(() => _runningYears = v),
+          ),
+          const SizedBox(height: 24),
+
+          if (_error)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text('Opslaan mislukt, probeer opnieuw.',
+                  style: const TextStyle(color: AppColors.error, fontSize: 13)),
+            ),
+
+          FilledButton(
+            onPressed: (_valid && !_saving) ? _save : null,
+            child: _saving
+                ? const SizedBox(height: 20, width: 20,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                : const Text('Opslaan'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GenderChips extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onSelect;
+  const _GenderChips({required this.selected, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    const options = [('male', 'Man'), ('female', 'Vrouw'), ('other', 'Anders')];
+    return Wrap(
+      spacing: 8,
+      children: options.map((o) => FilterChip(
+        label: Text(o.$2),
+        selected: selected == o.$1,
+        onSelected: (_) => onSelect(o.$1),
+      )).toList(),
+    );
+  }
+}
+
+class _ExperienceChips extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onSelect;
+  const _ExperienceChips({required this.selected, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    const options = [
+      ('less_than_two_years', '< 2 jaar'),
+      ('two_to_five_years',   '2–5 jaar'),
+      ('five_to_ten_years',   '5–10 jaar'),
+      ('more_than_ten_years', '10+ jaar'),
+    ];
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: options.map((o) => FilterChip(
+        label: Text(o.$2),
+        selected: selected == o.$1,
+        onSelected: (_) => onSelect(o.$1),
+      )).toList(),
+    );
   }
 }
 
@@ -336,8 +571,9 @@ class _Initials extends StatelessWidget {
 
 class _SectionCard extends StatelessWidget {
   final String title;
+  final Widget? trailing;
   final List<Widget> children;
-  const _SectionCard({required this.title, required this.children});
+  const _SectionCard({required this.title, required this.children, this.trailing});
 
   @override
   Widget build(BuildContext context) {
@@ -352,10 +588,15 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title.toUpperCase(),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
-          ),
+          Row(children: [
+            Expanded(
+              child: Text(
+                title.toUpperCase(),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
+              ),
+            ),
+            if (trailing != null) trailing!,
+          ]),
           const SizedBox(height: 12),
           ...children,
         ],
@@ -399,7 +640,7 @@ class _ProgressRow extends StatelessWidget {
         Row(children: [
           const Text('🏁', style: TextStyle(fontSize: 16)),
           const SizedBox(width: 10),
-          Text('Voortgang', style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+          const Text('Voortgang', style: TextStyle(color: AppColors.muted, fontSize: 13)),
           const Spacer(),
           Text(
             '$completed / $total sessies',

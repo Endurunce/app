@@ -45,8 +45,8 @@ class ApiClient {
     return resp.data;
   }
 
-  Future<void> patch(String path) async {
-    await _dio.patch(path);
+  Future<void> patch(String path, {Map<String, dynamic>? data}) async {
+    await _dio.patch(path, data: data);
   }
 }
 
