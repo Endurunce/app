@@ -25,8 +25,6 @@ class _InjuryScreenState extends ConsumerState<InjuryScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Blessures')),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.terra,
-        foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('Melden'),
         onPressed: () => _showReportSheet(context),
@@ -34,7 +32,7 @@ class _InjuryScreenState extends ConsumerState<InjuryScreen> {
       body: injuries.isEmpty
           ? const _EmptyState()
           : ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
               itemCount: injuries.length,
               itemBuilder: (ctx, i) => _InjuryCard(injury: injuries[i]),
             ),
@@ -45,34 +43,45 @@ class _InjuryScreenState extends ConsumerState<InjuryScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => const _ReportInjurySheet(),
     );
   }
 }
 
+// ── Empty state ───────────────────────────────────────────────────────────────
+
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: const [
-        Text('🎉', style: TextStyle(fontSize: 48)),
-        SizedBox(height: 12),
-        Text('Geen actieve blessures',
-            style: TextStyle(fontFamily: 'Georgia', fontSize: 18,
-                fontWeight: FontWeight.w700, color: AppColors.ink)),
-        SizedBox(height: 6),
-        Text('Blijf zo doorgaan!',
-            style: TextStyle(color: AppColors.inkMid)),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 80, height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.easy.withOpacity(.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Text('🎉', style: TextStyle(fontSize: 40)),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('Geen actieve blessures',
+              style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 8),
+          Text('Blijf zo doorgaan!',
+              style: Theme.of(context).textTheme.bodyMedium),
+        ],
+      ),
+    );
+  }
 }
+
+// ── Injury card ───────────────────────────────────────────────────────────────
 
 class _InjuryCard extends ConsumerWidget {
   final Injury injury;
@@ -80,71 +89,81 @@ class _InjuryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final severityColor = injury.severity >= 7 ? AppColors.terra
-        : injury.severity >= 4 ? AppColors.sand
-        : AppColors.moss;
+    final severityColor = injury.severity >= 7
+        ? AppColors.error
+        : injury.severity >= 4
+            ? AppColors.warning
+            : AppColors.easy;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            // Severity indicator
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                color: severityColor.withOpacity(.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text('${injury.severity}',
-                    style: TextStyle(fontFamily: 'Georgia', fontSize: 18,
-                        fontWeight: FontWeight.w700, color: severityColor)),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Ernst ${injury.severity}/10',
-                    style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.ink)),
-                Text(injury.reportedAt,
-                    style: const TextStyle(fontSize: 12, color: AppColors.inkLight)),
-              ],
-            )),
-            if (!injury.canRun)
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: severityColor.withOpacity(.25)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                width: 52, height: 52,
                 decoration: BoxDecoration(
-                  color: AppColors.terraDim,
-                  borderRadius: BorderRadius.circular(99),
+                  color: severityColor.withOpacity(.12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Text('Niet kunnen lopen',
-                    style: TextStyle(fontSize: 10, color: AppColors.terra, fontWeight: FontWeight.w600)),
+                child: Center(
+                  child: Text('${injury.severity}',
+                      style: TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.w800,
+                        color: severityColor)),
+                ),
               ),
-          ]),
+              const SizedBox(width: 14),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Ernst ${injury.severity}/10',
+                      style: Theme.of(context).textTheme.titleSmall),
+                  const SizedBox(height: 2),
+                  Text(injury.reportedAt,
+                      style: Theme.of(context).textTheme.bodySmall),
+                ],
+              )),
+              if (!injury.canRun)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.errorDim,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text('Niet lopen',
+                      style: TextStyle(
+                        fontSize: 11, color: AppColors.error,
+                        fontWeight: FontWeight.w700)),
+                ),
+            ]),
 
-          if (injury.description != null) ...[
+            if (injury.description != null) ...[
+              const SizedBox(height: 10),
+              Text(injury.description!,
+                  style: Theme.of(context).textTheme.bodyMedium),
+            ],
+
+            const SizedBox(height: 14),
+            const Divider(),
             const SizedBox(height: 10),
-            Text(injury.description!,
-                style: const TextStyle(fontSize: 13, color: AppColors.inkMid)),
-          ],
 
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
+            OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.moss,
-                side: const BorderSide(color: AppColors.moss),
+                foregroundColor: AppColors.easy,
+                side: BorderSide(color: AppColors.easy.withOpacity(.4)),
+                minimumSize: const Size(double.infinity, 44),
               ),
+              icon: const Icon(Icons.check_circle_outline, size: 18),
+              label: const Text('Markeren als hersteld'),
               onPressed: () async {
                 await ref.read(injuryProvider.notifier).resolve(injury.id);
                 if (context.mounted) {
@@ -153,10 +172,9 @@ class _InjuryCard extends ConsumerWidget {
                   );
                 }
               },
-              child: const Text('Markeren als hersteld'),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -169,11 +187,11 @@ const _locations = [
   ('achilles',   '🦶 Achilles'),
   ('shin',       '🦷 Scheenbeen'),
   ('hip',        '🫀 Heup'),
-  ('hamstring',  '🦿 Hamstring'),
+  ('hamstring',  '🏃 Hamstring'),
   ('calf',       '🦵 Kuit'),
   ('foot',       '🦶 Voet'),
   ('ankle',      '🦶 Enkel'),
-  ('lower_back', '🔙 Rug'),
+  ('lower_back', '🔙 Onderrug'),
 ];
 
 class _ReportInjurySheet extends ConsumerStatefulWidget {
@@ -197,6 +215,12 @@ class _ReportInjurySheetState extends ConsumerState<_ReportInjurySheet> {
     super.dispose();
   }
 
+  Color get _severityColor => _severity >= 7
+      ? AppColors.error
+      : _severity >= 4
+          ? AppColors.warning
+          : AppColors.easy;
+
   Future<void> _submit() async {
     if (_selectedLocations.isEmpty) return;
     setState(() => _submitting = true);
@@ -219,96 +243,160 @@ class _ReportInjurySheetState extends ConsumerState<_ReportInjurySheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 20, 20,
-          MediaQuery.of(context).viewInsets.bottom + 20),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Blessure melden',
-                style: TextStyle(fontFamily: 'Georgia', fontSize: 20,
-                    fontWeight: FontWeight.w700, color: AppColors.ink)),
-            const SizedBox(height: 20),
-
-            // Location chips
-            _sectionLabel('Locatie (meerdere mogelijk)'),
-            Wrap(
-              spacing: 8, runSpacing: 8,
-              children: _locations.map((loc) {
-                final selected = _selectedLocations.contains(loc.$1);
-                return FilterChip(
-                  label: Text(loc.$2),
-                  selected: selected,
-                  onSelected: (_) => setState(() =>
-                      selected ? _selectedLocations.remove(loc.$1)
-                               : _selectedLocations.add(loc.$1)),
-                  selectedColor: AppColors.terraDim,
-                  checkmarkColor: AppColors.terra,
-                );
-              }).toList(),
-            ),
-
-            const SizedBox(height: 20),
-            _sectionLabel('Ernst: $_severity / 10'),
-            Slider(
-              value: _severity.toDouble(),
-              min: 1, max: 10, divisions: 9,
-              activeColor: _severity >= 7 ? AppColors.terra
-                  : _severity >= 4 ? AppColors.sand : AppColors.moss,
-              onChanged: (v) => setState(() => _severity = v.round()),
-            ),
-
-            const SizedBox(height: 8),
-            Row(children: [
-              Expanded(child: CheckboxListTile(
-                title: const Text('Kan lopen', style: TextStyle(fontSize: 13)),
-                value: _canWalk,
-                activeColor: AppColors.moss,
-                onChanged: (v) => setState(() => _canWalk = v ?? true),
-                contentPadding: EdgeInsets.zero,
+    return DraggableScrollableSheet(
+      initialChildSize: 0.92,
+      maxChildSize: 0.95,
+      minChildSize: 0.5,
+      expand: false,
+      builder: (ctx, scrollCtrl) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: ListView(
+            controller: scrollCtrl,
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+            children: [
+              // Handle
+              Center(child: Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.outlineHigh,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               )),
-              Expanded(child: CheckboxListTile(
-                title: const Text('Kan hardlopen', style: TextStyle(fontSize: 13)),
-                value: _canRun,
-                activeColor: AppColors.moss,
-                onChanged: (v) => setState(() => _canRun = v ?? false),
-                contentPadding: EdgeInsets.zero,
-              )),
-            ]),
 
-            const SizedBox(height: 8),
-            TextField(
-              controller: _descCtrl,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Omschrijving (optioneel)',
-                hintText: 'Wanneer begon het? Wat doet pijn?',
+              Text('Blessure melden',
+                  style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 4),
+              Text('Beschrijf zo nauwkeurig mogelijk',
+                  style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 24),
+
+              // Location chips
+              Text('LOCATIE',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5)),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8, runSpacing: 8,
+                children: _locations.map((loc) {
+                  final selected = _selectedLocations.contains(loc.$1);
+                  return FilterChip(
+                    label: Text(loc.$2),
+                    selected: selected,
+                    onSelected: (_) => setState(() => selected
+                        ? _selectedLocations.remove(loc.$1)
+                        : _selectedLocations.add(loc.$1)),
+                  );
+                }).toList(),
               ),
-            ),
 
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.terra),
+              const SizedBox(height: 24),
+              Row(children: [
+                Text('ERNST',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _severityColor.withOpacity(.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text('$_severity / 10',
+                      style: TextStyle(
+                        color: _severityColor, fontWeight: FontWeight.w800)),
+                ),
+              ]),
+              const SizedBox(height: 8),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: _severityColor,
+                  thumbColor:       _severityColor,
+                ),
+                child: Slider(
+                  value: _severity.toDouble(),
+                  min: 1, max: 10, divisions: 9,
+                  onChanged: (v) => setState(() => _severity = v.round()),
+                ),
+              ),
+
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(child: _CheckOption(
+                  label: 'Kan lopen',
+                  value: _canWalk,
+                  onChanged: (v) => setState(() => _canWalk = v),
+                )),
+                const SizedBox(width: 10),
+                Expanded(child: _CheckOption(
+                  label: 'Kan hardlopen',
+                  value: _canRun,
+                  onChanged: (v) => setState(() => _canRun = v),
+                )),
+              ]),
+
+              const SizedBox(height: 14),
+              TextField(
+                controller: _descCtrl,
+                maxLines: 3,
+                style: const TextStyle(color: AppColors.onBg),
+                decoration: const InputDecoration(
+                  labelText: 'Omschrijving (optioneel)',
+                  hintText: 'Wanneer begon het? Wat doet pijn?',
+                  prefixIcon: Icon(Icons.notes_outlined, size: 18),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: AppColors.error),
                 onPressed: (_submitting || _selectedLocations.isEmpty) ? null : _submit,
-                child: _submitting
+                icon: _submitting
                     ? const SizedBox(height: 18, width: 18,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('Blessure melden'),
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                    : const Icon(Icons.report_outlined, size: 18),
+                label: const Text('Blessure melden'),
               ),
-            ),
-          ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CheckOption extends StatelessWidget {
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  const _CheckOption({required this.label, required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: value ? AppColors.easy.withOpacity(.15) : AppColors.surfaceHigh,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: value ? AppColors.easy : AppColors.outline,
+          ),
         ),
+        child: Row(children: [
+          Icon(value ? Icons.check_box : Icons.check_box_outline_blank,
+              size: 18,
+              color: value ? AppColors.easy : AppColors.muted),
+          const SizedBox(width: 8),
+          Text(label,
+              style: TextStyle(
+                fontSize: 13,
+                color: value ? AppColors.easy : AppColors.onSurface,
+                fontWeight: FontWeight.w500,
+              )),
+        ]),
       ),
     );
   }
-
-  Widget _sectionLabel(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Text(text.toUpperCase(),
-        style: const TextStyle(fontSize: 10, letterSpacing: 2, color: AppColors.inkLight)),
-  );
 }

@@ -27,47 +27,30 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final planState   = ref.watch(planProvider);
-    final injuries    = ref.watch(injuryProvider);
+    final planState = ref.watch(planProvider);
+    final injuries  = ref.watch(injuryProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Endurance'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.healing_outlined),
-            tooltip: 'Blessures',
-            onPressed: () => context.push('/injuries'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Uitloggen',
-            onPressed: () {
-              ref.read(authProvider.notifier).logout();
-              context.go('/login');
-            },
-          ),
-        ],
-      ),
       body: Builder(builder: (ctx) {
         if (planState.loading) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.moss));
+          return const Center(child: CircularProgressIndicator());
         }
-
         if (planState.error == 'no_plan') {
           return _NoPlanView(onCreatePlan: () => context.go('/intake'));
         }
-
         if (planState.error != null) {
-          return Center(child: Text(planState.error!, style: const TextStyle(color: AppColors.terra)));
+          return Center(
+            child: Text(planState.error!,
+                style: const TextStyle(color: AppColors.error)),
+          );
         }
-
-        final plan = planState.plan!;
-        return _PlanView(plan: plan, injuries: injuries);
+        return _PlanView(plan: planState.plan!, injuries: injuries);
       }),
     );
   }
 }
+
+// ── No plan ───────────────────────────────────────────────────────────────────
 
 class _NoPlanView extends StatelessWidget {
   final VoidCallback onCreatePlan;
@@ -81,18 +64,31 @@ class _NoPlanView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('🏃', style: TextStyle(fontSize: 64)),
-            const SizedBox(height: 16),
-            const Text('Nog geen trainingsplan',
-                style: TextStyle(fontFamily: 'Georgia', fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.ink)),
+            Container(
+              width: 80, height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.brand.withOpacity(.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Text('🏃', style: TextStyle(fontSize: 40)),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text('Nog geen trainingsplan',
+                style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
-            const Text('Maak een persoonlijk schema op basis van jouw profiel en doelstelling.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.inkMid, fontSize: 14)),
-            const SizedBox(height: 28),
-            ElevatedButton(
+            Text(
+              'Maak een persoonlijk schema op basis\nvan jouw profiel en doelstelling.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 32),
+            FilledButton.icon(
               onPressed: onCreatePlan,
-              child: const Text('Plan aanmaken'),
+              icon: const Icon(Icons.auto_awesome, size: 18),
+              label: const Text('Plan aanmaken'),
+              style: FilledButton.styleFrom(minimumSize: const Size(200, 52)),
             ),
           ],
         ),
@@ -101,46 +97,117 @@ class _NoPlanView extends StatelessWidget {
   }
 }
 
-class _PlanView extends StatelessWidget {
+// ── Plan view ─────────────────────────────────────────────────────────────────
+
+class _PlanView extends ConsumerWidget {
   final TrainingPlan plan;
   final List<dynamic> injuries;
 
   const _PlanView({required this.plan, required this.injuries});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return CustomScrollView(
       slivers: [
-        // Active injury banner
-        if (injuries.isNotEmpty)
-          SliverToBoxAdapter(
+        SliverAppBar(
+          floating:   true,
+          snap:       true,
+          pinned:     false,
+          title:      const Text('Trainingsplan'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout_outlined),
+              tooltip: 'Uitloggen',
+              onPressed: () {
+                ref.read(authProvider.notifier).logout();
+                context.go('/login');
+              },
+            ),
+          ],
+        ),
+
+        // Plan header card
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Container(
-              margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.terraDim,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.terra.withOpacity(.3)),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF1E1420), AppColors.surface],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.brand.withOpacity(.25)),
               ),
               child: Row(children: [
-                const Text('🩹', style: TextStyle(fontSize: 18)),
-                const SizedBox(width: 10),
-                Expanded(child: Text(
-                  '${injuries.length} actieve blessure${injuries.length > 1 ? 's' : ''} — plan is aangepast.',
-                  style: const TextStyle(color: AppColors.terra, fontSize: 13, fontWeight: FontWeight.w500),
+                Expanded(child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      plan.raceGoal.replaceAll('_', ' ').toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 11, letterSpacing: 2,
+                        color: AppColors.brand, fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${plan.weeks.length} weken',
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${plan.weeks.where((w) => w.completedCount == w.activeDays.length && w.activeDays.isNotEmpty).length} van ${plan.weeks.length} weken afgerond',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                 )),
-                TextButton(
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
-                  onPressed: () => context.push('/injuries'),
-                  child: const Text('Bekijk', style: TextStyle(fontSize: 12)),
+                _CircleProgress(
+                  completed: plan.weeks.where((w) =>
+                    w.completedCount == w.activeDays.length && w.activeDays.isNotEmpty).length,
+                  total: plan.weeks.length,
                 ),
               ]),
+            ),
+          ),
+        ),
+
+        // Injury banner
+        if (injuries.isNotEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Material(
+                color: AppColors.errorDim,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () => context.go('/injuries'),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(children: [
+                      const Text('🩹', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          '${injuries.length} actieve blessure${injuries.length > 1 ? 's' : ''} — plan is aangepast',
+                          style: const TextStyle(
+                            color: AppColors.error, fontSize: 13, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right, size: 16, color: AppColors.error),
+                    ]),
+                  ),
+                ),
+              ),
             ),
           ),
 
         // Week list
         SliverPadding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
               (ctx, i) => _WeekCard(week: plan.weeks[i], planId: plan.id),
@@ -153,6 +220,33 @@ class _PlanView extends StatelessWidget {
   }
 }
 
+class _CircleProgress extends StatelessWidget {
+  final int completed;
+  final int total;
+  const _CircleProgress({required this.completed, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = total > 0 ? completed / total : 0.0;
+    return SizedBox(
+      width: 64, height: 64,
+      child: Stack(alignment: Alignment.center, children: [
+        CircularProgressIndicator(
+          value: progress,
+          strokeWidth: 5,
+          backgroundColor: AppColors.outline,
+          color: AppColors.brand,
+        ),
+        Text('${(progress * 100).round()}%',
+            style: const TextStyle(
+              fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.onBg)),
+      ]),
+    );
+  }
+}
+
+// ── Week card ─────────────────────────────────────────────────────────────────
+
 class _WeekCard extends StatelessWidget {
   final Week week;
   final String planId;
@@ -164,101 +258,139 @@ class _WeekCard extends StatelessWidget {
     final completed = week.completedCount;
     final total     = week.activeDays.length;
     final progress  = total > 0 ? completed / total : 0.0;
+    final isFullyDone = total > 0 && completed == total;
 
-    return GestureDetector(
-      onTap: () => context.push('/plan/week/${week.weekNumber}'),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(children: [
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Week ${week.weekNumber}',
-                      style: const TextStyle(fontFamily: 'Georgia', fontSize: 16,
-                          fontWeight: FontWeight.w700, color: AppColors.ink)),
-                  const SizedBox(height: 2),
-                  Row(children: [
-                    _phaseBadge(week.phaseLabel),
-                    if (week.isRecovery) ...[
-                      const SizedBox(width: 6),
-                      _badge('Herstel', AppColors.sky, AppColors.skyDim),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => context.push('/plan/week/${week.weekNumber}'),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: isFullyDone
+                    ? AppColors.easy.withOpacity(.4)
+                    : AppColors.outline,
+              ),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(children: [
+                  Expanded(child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Text('Week ${week.weekNumber}',
+                            style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(width: 10),
+                        _Badge(week.phaseLabel, AppColors.brand),
+                        if (week.isRecovery) ...[
+                          const SizedBox(width: 6),
+                          _Badge('Herstel', AppColors.longRun),
+                        ],
+                        if (isFullyDone) ...[
+                          const SizedBox(width: 6),
+                          _Badge('✓', AppColors.easy),
+                        ],
+                      ]),
                     ],
+                  )),
+                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    Text('${week.targetKm.round()} km',
+                        style: const TextStyle(
+                          fontSize: 22, fontWeight: FontWeight.w800,
+                          color: AppColors.brand)),
+                    Text('doelkilometrage',
+                        style: Theme.of(context).textTheme.bodySmall),
                   ]),
                 ]),
-              ),
-              Text('${week.targetKm.round()} km',
-                  style: const TextStyle(fontFamily: 'Georgia', fontSize: 20,
-                      fontWeight: FontWeight.w700, color: AppColors.moss)),
-            ]),
 
-            const SizedBox(height: 12),
+                const SizedBox(height: 14),
 
-            // Day pills
-            Row(
-              children: week.days.map((day) {
-                if (day.sessionType == 'rest') {
-                  return Expanded(child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.surface2,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(child: Text(dayNames[day.weekday],
-                        style: const TextStyle(fontSize: 10, color: AppColors.inkLight))),
-                  ));
-                }
-                final s = styleFor(day.sessionType);
-                return Expanded(child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 2),
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: day.completed ? s.color : s.bg,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: s.color.withOpacity(.4)),
-                  ),
-                  child: Center(child: Text(s.emoji,
-                      style: const TextStyle(fontSize: 16))),
-                ));
-              }).toList(),
-            ),
-
-            // Progress bar
-            if (total > 0) ...[
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(99),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: AppColors.border,
-                  color: AppColors.moss,
-                  minHeight: 4,
+                // Day pills
+                Row(
+                  children: week.days.map((day) {
+                    if (day.sessionType == 'rest') {
+                      return Expanded(child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.restDim,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(child: Text(dayNames[day.weekday],
+                            style: const TextStyle(fontSize: 9, color: AppColors.rest,
+                                fontWeight: FontWeight.w600))),
+                      ));
+                    }
+                    final s = styleFor(day.sessionType);
+                    return Expanded(child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: day.completed ? s.color.withOpacity(.3) : s.bg,
+                        borderRadius: BorderRadius.circular(10),
+                        border: day.completed
+                            ? Border.all(color: s.color.withOpacity(.6))
+                            : null,
+                      ),
+                      child: Center(child: Text(s.emoji,
+                          style: const TextStyle(fontSize: 17))),
+                    ));
+                  }).toList(),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text('$completed / $total sessies voltooid',
-                  style: const TextStyle(fontSize: 11, color: AppColors.inkLight)),
-            ],
-          ],
+
+                // Progress
+                if (total > 0) ...[
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 3,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('$completed / $total sessies',
+                          style: Theme.of(context).textTheme.bodySmall),
+                      const Icon(Icons.chevron_right, size: 16, color: AppColors.muted),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _phaseBadge(String label) => _badge(label, AppColors.moss, AppColors.mossDim);
+class _Badge extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _Badge(this.label, this.color);
 
-  Widget _badge(String label, Color color, Color bg) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-    child: Text(label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
-  );
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(.15),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(label,
+          style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w700)),
+    );
+  }
 }

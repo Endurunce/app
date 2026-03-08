@@ -12,25 +12,67 @@ class WeekDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final plan = ref.watch(planProvider).plan;
-    if (plan == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (plan == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     final week = plan.weeks.firstWhere((w) => w.weekNumber == weekNumber);
+    final completed = week.completedCount;
+    final total = week.activeDays.length;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Week $weekNumber — ${week.phaseLabel}'),
+        title: Text('Week $weekNumber'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Row(children: [
+              _PhaseBadge(week.phaseLabel),
+              if (week.isRecovery) ...[
+                const SizedBox(width: 8),
+                _PhaseBadge('Herstelweek'),
+              ],
+              const Spacer(),
+              Text('$completed / $total klaar',
+                  style: Theme.of(context).textTheme.bodySmall),
+            ]),
+          ),
+        ),
       ),
       body: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         itemCount: week.days.length,
-        itemBuilder: (ctx, i) {
-          final day = week.days[i];
-          return _DayCard(day: day, week: week, plan: plan);
-        },
+        itemBuilder: (ctx, i) => _DayCard(
+          day: week.days[i],
+          week: week,
+          plan: plan,
+        ),
       ),
     );
   }
 }
+
+class _PhaseBadge extends StatelessWidget {
+  final String label;
+  const _PhaseBadge(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.brand.withOpacity(.15),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(label,
+          style: const TextStyle(
+            fontSize: 12, color: AppColors.brand, fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+// ── Day card ──────────────────────────────────────────────────────────────────
 
 class _DayCard extends ConsumerStatefulWidget {
   final Day day;
@@ -45,90 +87,113 @@ class _DayCard extends ConsumerStatefulWidget {
 
 class _DayCardState extends ConsumerState<_DayCard> {
   bool _expanded = false;
+  final _style = ValueNotifier<SessionStyle?>(null);
 
   @override
   Widget build(BuildContext context) {
     final day = widget.day;
     final s   = styleFor(day.sessionType);
+    final isRest = day.sessionType == 'rest';
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          // Main row
-          InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: day.sessionType == 'rest'
-                ? null
-                : () => setState(() => _expanded = !_expanded),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(children: [
-                // Emoji badge
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(color: s.bg, borderRadius: BorderRadius.circular(12)),
-                  child: Center(child: Text(s.emoji, style: const TextStyle(fontSize: 22))),
-                ),
-                const SizedBox(width: 12),
-
-                Expanded(child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(dayNames[day.weekday],
-                        style: const TextStyle(fontSize: 11, color: AppColors.inkLight,
-                            letterSpacing: 1.5, fontWeight: FontWeight.w500)),
-                    Text(s.label,
-                        style: const TextStyle(fontWeight: FontWeight.w600,
-                            fontSize: 15, color: AppColors.ink)),
-                    if (s.paceNote.isNotEmpty)
-                      Text(s.paceNote, style: const TextStyle(fontSize: 12, color: AppColors.inkMid)),
-                  ],
-                )),
-
-                // KM + done badge
-                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  if (day.sessionType != 'rest' && day.sessionType != 'cross')
-                    Text('${day.effectiveKm.toStringAsFixed(1)} km',
-                        style: TextStyle(fontFamily: 'Georgia', fontSize: 18,
-                            fontWeight: FontWeight.w700, color: s.color)),
-                  if (day.completed)
-                    Container(
-                      margin: const EdgeInsets.only(top: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                          color: AppColors.mossDim, borderRadius: BorderRadius.circular(99)),
-                      child: const Text('✓ Klaar',
-                          style: TextStyle(fontSize: 10, color: AppColors.moss, fontWeight: FontWeight.w600)),
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            InkWell(
+              onTap: isRest ? null : () => setState(() => _expanded = !_expanded),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(children: [
+                  // Type icon
+                  Container(
+                    width: 48, height: 48,
+                    decoration: BoxDecoration(
+                      color: s.bg,
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                ]),
-              ]),
-            ),
-          ),
+                    child: Center(child: Text(s.emoji,
+                        style: const TextStyle(fontSize: 24))),
+                  ),
+                  const SizedBox(width: 14),
 
-          // Expandable feedback form
-          if (_expanded && !day.completed)
-            _FeedbackForm(day: day, week: widget.week, plan: widget.plan,
-                onDone: () => setState(() => _expanded = false)),
-        ],
+                  Expanded(child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(dayNames[day.weekday].toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 10, letterSpacing: 2,
+                            color: AppColors.muted, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 2),
+                      Text(s.label,
+                          style: Theme.of(context).textTheme.titleSmall),
+                      if (s.paceNote.isNotEmpty)
+                        Text(s.paceNote,
+                            style: const TextStyle(
+                              fontSize: 12, color: AppColors.muted)),
+                    ],
+                  )),
+
+                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    if (!isRest && day.sessionType != 'cross')
+                      Text('${day.effectiveKm.toStringAsFixed(1)} km',
+                          style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w800,
+                            color: s.color)),
+                    const SizedBox(height: 4),
+                    if (day.completed)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.easy.withOpacity(.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text('✓ Klaar',
+                            style: TextStyle(
+                              fontSize: 11, color: AppColors.easy,
+                              fontWeight: FontWeight.w700)),
+                      )
+                    else if (!isRest)
+                      Icon(
+                        _expanded ? Icons.expand_less : Icons.expand_more,
+                        size: 18, color: AppColors.muted,
+                      ),
+                  ]),
+                ]),
+              ),
+            ),
+
+            if (_expanded && !day.completed)
+              _FeedbackForm(
+                day: widget.day,
+                week: widget.week,
+                plan: widget.plan,
+                sessionColor: s.color,
+                onDone: () => setState(() => _expanded = false),
+              ),
+          ],
+        ),
       ),
     );
   }
 }
 
+// ── Feedback form ─────────────────────────────────────────────────────────────
+
 class _FeedbackForm extends ConsumerStatefulWidget {
   final Day day;
   final Week week;
   final TrainingPlan plan;
+  final Color sessionColor;
   final VoidCallback onDone;
 
-  const _FeedbackForm({required this.day, required this.week, required this.plan, required this.onDone});
+  const _FeedbackForm({
+    required this.day, required this.week, required this.plan,
+    required this.sessionColor, required this.onDone,
+  });
 
   @override
   ConsumerState<_FeedbackForm> createState() => _FeedbackFormState();
@@ -140,6 +205,8 @@ class _FeedbackFormState extends ConsumerState<_FeedbackForm> {
   final _notesCtrl = TextEditingController();
   final _kmCtrl    = TextEditingController();
   bool _submitting = false;
+
+  static const _emojis = ['😫', '😓', '😐', '😊', '🤩'];
 
   @override
   void dispose() {
@@ -169,82 +236,104 @@ class _FeedbackFormState extends ConsumerState<_FeedbackForm> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: AppColors.outline)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Divider(height: 1),
-          const SizedBox(height: 14),
+          const SizedBox(height: 20),
 
           // Feeling
-          const Text('HOE VOELDE HET?',
-              style: TextStyle(fontSize: 10, letterSpacing: 2, color: AppColors.inkLight)),
-          const SizedBox(height: 8),
+          Text('HOE VOELDE HET?',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5)),
+          const SizedBox(height: 12),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(5, (i) {
               final val = i + 1;
-              final emojis = ['😫', '😓', '😐', '😊', '🤩'];
               final selected = _feeling == val;
-              return GestureDetector(
-                onTap: () => setState(() => _feeling = val),
-                child: Container(
-                  width: 52, height: 52,
-                  decoration: BoxDecoration(
-                    color: selected ? AppColors.moss : AppColors.surface2,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: selected ? AppColors.moss : AppColors.border),
+              return Expanded(child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: GestureDetector(
+                  onTap: () => setState(() => _feeling = val),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: selected ? widget.sessionColor.withOpacity(.2) : AppColors.surfaceHigh,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: selected ? widget.sessionColor : AppColors.outline,
+                        width: selected ? 2 : 1,
+                      ),
+                    ),
+                    child: Center(child: Text(_emojis[i],
+                        style: const TextStyle(fontSize: 24))),
                   ),
-                  child: Center(child: Text(emojis[i], style: const TextStyle(fontSize: 22))),
                 ),
-              );
+              ));
             }),
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
 
-          // Pain toggle
-          Row(children: [
-            Checkbox(
-              value: _pain,
-              activeColor: AppColors.terra,
-              onChanged: (v) => setState(() => _pain = v ?? false),
+          // Pain
+          Material(
+            color: _pain ? AppColors.errorDim : AppColors.surfaceHigh,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => setState(() => _pain = !_pain),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(children: [
+                  Icon(_pain ? Icons.check_box : Icons.check_box_outline_blank,
+                      color: _pain ? AppColors.error : AppColors.muted, size: 20),
+                  const SizedBox(width: 10),
+                  Text('Pijn of ongemak tijdens sessie',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: _pain ? AppColors.error : AppColors.onSurface,
+                        fontWeight: FontWeight.w500,
+                      )),
+                ]),
+              ),
             ),
-            const Text('Pijn of ongemak tijdens sessie',
-                style: TextStyle(fontSize: 13, color: AppColors.ink)),
-          ]),
+          ),
 
-          // Actual km
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           TextField(
             controller: _kmCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: const TextStyle(color: AppColors.onBg),
             decoration: const InputDecoration(
-              labelText: 'Werkelijk gelopen km (optioneel)',
+              labelText: 'Gelopen km (optioneel)',
               suffixText: 'km',
+              prefixIcon: Icon(Icons.route_outlined, size: 18),
             ),
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           TextField(
             controller: _notesCtrl,
             maxLines: 2,
+            style: const TextStyle(color: AppColors.onBg),
             decoration: const InputDecoration(
               labelText: 'Notities (optioneel)',
-              hintText: 'Hoe ging het? Bijzonderheden?',
+              hintText: 'Hoe ging het?',
+              prefixIcon: Icon(Icons.notes_outlined, size: 18),
             ),
           ),
 
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _submitting ? null : _submit,
-              child: _submitting
-                  ? const SizedBox(height: 18, width: 18,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Sessie afronden ✓'),
-            ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _submitting ? null : _submit,
+            icon: _submitting
+                ? const SizedBox(height: 18, width: 18,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                : const Icon(Icons.check_circle_outline, size: 18),
+            label: const Text('Sessie afronden'),
           ),
         ],
       ),
