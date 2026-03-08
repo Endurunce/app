@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
 
 class AuthState {
@@ -92,8 +94,15 @@ class AuthNotifier extends Notifier<AuthState> {
     state = state.copyWith(loading: true, clearError: true);
     try {
       final client = ref.read(apiClientProvider);
-      final data = await client.get('/api/auth/google?state=app');
+      final stateParam = kIsWeb ? 'web' : 'app';
+      final data = await client.get('/api/auth/google?state=$stateParam');
       final authUrl = data['auth_url'] as String;
+
+      if (kIsWeb) {
+        // On web: redirect current tab to Google; token arrives via URL hash on return
+        await launchUrl(Uri.parse(authUrl), webOnlyWindowName: '_self');
+        return false;
+      }
 
       final result = await FlutterWebAuth2.authenticate(
         url: authUrl,
