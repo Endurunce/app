@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
+import '../../features/auth/auth_provider.dart';
 import '../../features/plan/plan_provider.dart';
 import '../../shared/theme/app_theme.dart';
 
@@ -18,6 +19,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   int _fromStep = 1;
   static const _totalSteps = 7;
   bool _submitting = false;
+  bool _step1Prefilled = false; // stap 1 overslaan als alles al bekend is
 
   // Step 1
   final _nameCtrl = TextEditingController();
@@ -56,6 +58,29 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   final Set<String> _previousInjuries = {};
 
   @override
+  void initState() {
+    super.initState();
+    // Prefill vanuit auth state (register-fase-2 of Strava/Google-naam)
+    final auth = ref.read(authProvider);
+    if (auth.displayName != null) _nameCtrl.text = auth.displayName!;
+    if (auth.age != null) _ageCtrl.text = auth.age.toString();
+    if (auth.gender != null) _gender = auth.gender;
+
+    // Als alle drie al ingevuld zijn, sla stap 1 over
+    if (_nameCtrl.text.isNotEmpty &&
+        _ageCtrl.text.isNotEmpty &&
+        _gender != null) {
+      _step1Prefilled = true;
+      _step = 2;
+      _fromStep = 2;
+    }
+  }
+
+  // Hoe stap en totaal worden getoond in de indicator
+  int get _displayStep  => _step1Prefilled ? _step - 1 : _step;
+  int get _displayTotal => _step1Prefilled ? _totalSteps - 1 : _totalSteps;
+
+  @override
   void dispose() {
     _nameCtrl.dispose();
     _ageCtrl.dispose();
@@ -90,7 +115,8 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   }
 
   void _prevStep() {
-    if (_step > 1) setState(() { _fromStep = _step; _step--; });
+    final minStep = _step1Prefilled ? 2 : 1;
+    if (_step > minStep) setState(() { _fromStep = _step; _step--; });
   }
 
   void _skipStep() {
@@ -157,7 +183,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Jouw plan opmaken'),
-        leading: _step > 1
+        leading: (_step1Prefilled ? _step > 2 : _step > 1)
             ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: _prevStep)
             : const CloseButton(),
         actions: [
@@ -175,14 +201,14 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
             child: Column(children: [
               Row(
-                children: List.generate(_totalSteps, (i) => Expanded(
+                children: List.generate(_displayTotal, (i) => Expanded(
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     margin: const EdgeInsets.symmetric(horizontal: 2),
                     height: 4,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(99),
-                      color: i < _step ? AppColors.brand : AppColors.outline,
+                      color: i < _displayStep ? AppColors.brand : AppColors.outline,
                     ),
                   ),
                 )),
@@ -190,7 +216,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               const SizedBox(height: 6),
               Align(
                 alignment: Alignment.centerRight,
-                child: Text('Stap $_step van $_totalSteps',
+                child: Text('Stap $_displayStep van $_displayTotal',
                     style: Theme.of(context).textTheme.labelSmall),
               ),
             ]),

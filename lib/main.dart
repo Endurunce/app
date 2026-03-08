@@ -10,27 +10,27 @@ import 'shared/theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // On web: check if we're returning from Google OAuth (token in URL hash)
+  // On web: check if we're returning from Strava/Google OAuth (token in URL hash)
+  String? webDisplayName;
   if (kIsWeb) {
     final uri = Uri.base;
-    final fragment = uri.fragment; // e.g. "token=xxx&is_admin=false&email=..."
+    final fragment = uri.fragment; // e.g. "token=xxx&is_admin=false&email=...&display_name=..."
     if (fragment.contains('token=')) {
       final params = Uri.splitQueryString(fragment);
       final token = params['token'];
       if (token != null) {
         await saveToken(token);
-        // Clean up URL
-        // ignore: undefined_prefixed_name
-        // We can't easily manipulate history here without dart:html, router will handle navigation
       }
+      webDisplayName = params['display_name'];
     }
   }
 
-  runApp(const ProviderScope(child: EnduranceApp()));
+  runApp(ProviderScope(child: EnduranceApp(webDisplayName: webDisplayName)));
 }
 
 class EnduranceApp extends ConsumerStatefulWidget {
-  const EnduranceApp({super.key});
+  final String? webDisplayName;
+  const EnduranceApp({super.key, this.webDisplayName});
 
   @override
   ConsumerState<EnduranceApp> createState() => _EnduranceAppState();
@@ -40,8 +40,13 @@ class _EnduranceAppState extends ConsumerState<EnduranceApp> {
   @override
   void initState() {
     super.initState();
-    // Restore JWT token from secure storage on startup
-    Future.microtask(() => ref.read(authProvider.notifier).init());
+    Future.microtask(() async {
+      await ref.read(authProvider.notifier).init();
+      // Pas display_name toe vanuit web OAuth hash (Strava/Google)
+      if (widget.webDisplayName != null && widget.webDisplayName!.isNotEmpty) {
+        ref.read(authProvider.notifier).applyWebAuthHash(widget.webDisplayName!);
+      }
+    });
   }
 
   @override
