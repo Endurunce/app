@@ -1,4 +1,4 @@
-package nl.endurance.endurance_app
+package nl.endurunce.app
 
 import io.flutter.embedding.android.FlutterActivity
 
