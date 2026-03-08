@@ -1,11 +1,11 @@
 {
-    "name": "endurance_app",
-    "short_name": "endurance_app",
+    "name": "Endurunce",
+    "short_name": "Endurunce",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#1C1C2E",
+    "theme_color": "#FF7043",
+    "description": "Slimmer trainen. Sneller herstellen.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
