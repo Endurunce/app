@@ -68,15 +68,35 @@ class CoachNotifier extends Notifier<CoachState> {
   }
 
   Future<void> send(String content) async {
-    if (content.trim().isEmpty) return;
-    state = state.copyWith(sending: true, clearError: true);
+    final text = content.trim();
+    if (text.isEmpty) return;
+
+    // Optimistically add user message
+    final optimistic = CoachMessage(
+      id: 'pending',
+      role: 'user',
+      content: text,
+      createdAt: DateTime.now(),
+    );
+    state = state.copyWith(
+      messages: [...state.messages, optimistic],
+      sending: true,
+      clearError: true,
+    );
+
     try {
       final client = ref.read(apiClientProvider);
-      await client.post('/api/coach', {'content': content.trim()});
-      // Reload all to get both user+assistant messages
-      await load();
-    } catch (e) {
+      final resp = await client.post('/api/coach', {'content': text});
+      final assistantMsg = CoachMessage.fromJson(resp);
+      // Append the assistant response; the optimistic user message stays
       state = state.copyWith(
+        messages: [...state.messages, assistantMsg],
+        sending: false,
+      );
+    } catch (e) {
+      // Remove the optimistic user message on failure
+      state = state.copyWith(
+        messages: state.messages.where((m) => m.id != 'pending').toList(),
         sending: false,
         error: 'Bericht versturen mislukt. Probeer opnieuw.',
       );
