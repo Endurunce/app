@@ -185,7 +185,11 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         title: const Text('Jouw plan opmaken'),
         leading: (_step1Prefilled ? _step > 2 : _step > 1)
             ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: _prevStep)
-            : const CloseButton(),
+            : IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => context.go('/plan'),
+                tooltip: 'Sluiten',
+              ),
         actions: [
           if (isSkippable)
             TextButton(

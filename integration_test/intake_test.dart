@@ -151,5 +151,23 @@ void main() {
       expect(find.byType(AnimatedContainer), findsAtLeastNWidgets(7),
           reason: '7 stap-indicator balken verwacht');
     });
+
+    testWidgets('Sluitknop op stap 1 navigeert terug naar planscherm', (t) async {
+      await startIntake(t);
+
+      // Stap 1 is zichtbaar
+      seeText('Stap 1 van 7');
+
+      // Sluitknop (×) tikken
+      await t.tap(find.byIcon(Icons.close).first);
+      await settle(t);
+
+      // Terug op het planscherm (of loginscherm — niet meer op intake)
+      expect(
+        find.text('Jouw plan opmaken').evaluate().isEmpty,
+        isTrue,
+        reason: 'Intake zou gesloten moeten zijn na tikken op ×',
+      );
+    });
   });
 }
