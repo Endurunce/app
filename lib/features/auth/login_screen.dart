@@ -31,6 +31,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (ok && mounted) context.go('/plan');
   }
 
+  Future<void> _googleLogin() async {
+    final ok = await ref.read(authProvider.notifier).loginWithGoogle();
+    if (ok && mounted) context.go('/plan');
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
@@ -100,6 +105,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                           : const Text('Inloggen', style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
+
+                    const SizedBox(height: 12),
+                    Row(children: [
+                      const Expanded(child: Divider(color: AppColors.border)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text('of', style: TextStyle(color: AppColors.inkLight, fontSize: 12)),
+                      ),
+                      const Expanded(child: Divider(color: AppColors.border)),
+                    ]),
+                    const SizedBox(height: 12),
+
+                    OutlinedButton.icon(
+                      onPressed: auth.loading ? null : _googleLogin,
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.border),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: _GoogleIcon(),
+                      label: const Text('Doorgaan met Google',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                    ),
                   ],
                 ),
               ),
@@ -127,4 +154,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     child: Text(text.toUpperCase(),
         style: const TextStyle(fontSize: 11, color: AppColors.inkLight, letterSpacing: 2)),
   );
+}
+
+class _GoogleIcon extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 18, height: 18,
+      child: CustomPaint(painter: _GooglePainter()),
+    );
+  }
+}
+
+class _GooglePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = size.width / 2;
+    final c = Offset(r, r);
+    final paint = Paint()..style = PaintingStyle.stroke..strokeWidth = size.width * 0.18;
+
+    // Red arc
+    paint.color = const Color(0xFFEA4335);
+    canvas.drawArc(Rect.fromCircle(center: c, radius: r * 0.88), -1.57, 1.57, false, paint);
+    // Yellow arc
+    paint.color = const Color(0xFFFBBC05);
+    canvas.drawArc(Rect.fromCircle(center: c, radius: r * 0.88), 0, 1.57, false, paint);
+    // Green arc
+    paint.color = const Color(0xFF34A853);
+    canvas.drawArc(Rect.fromCircle(center: c, radius: r * 0.88), 1.57, 1.57, false, paint);
+    // Blue arc
+    paint.color = const Color(0xFF4285F4);
+    canvas.drawArc(Rect.fromCircle(center: c, radius: r * 0.88), 3.14, 1.57, false, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
