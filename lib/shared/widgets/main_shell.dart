@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../theme/app_theme.dart';
 
 class MainShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
@@ -33,14 +32,14 @@ class MainShell extends StatelessWidget {
             label:        'Coach',
           ),
           NavigationDestination(
-            icon:         Icon(Icons.favorite_border),
-            selectedIcon: Icon(Icons.favorite, color: AppColors.brand),
-            label:        'Strava',
-          ),
-          NavigationDestination(
             icon:         Icon(Icons.lightbulb_outline),
             selectedIcon: Icon(Icons.lightbulb),
             label:        'Tips',
+          ),
+          NavigationDestination(
+            icon:         Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label:        'Profiel',
           ),
         ],
       ),

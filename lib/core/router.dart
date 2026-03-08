@@ -9,9 +9,9 @@ import '../features/plan/plan_screen.dart';
 import '../features/plan/week_detail_screen.dart';
 import '../features/injury/injury_screen.dart';
 import '../features/coach/coach_screen.dart';
-import '../features/strava/strava_screen.dart';
 import '../features/tips/tips_screen.dart';
 import '../features/profile/intake_screen.dart';
+import '../features/profile/profile_screen.dart';
 import '../shared/widgets/main_shell.dart';
 
 // Shared transition builders
@@ -102,10 +102,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             GoRoute(path: '/coach', builder: (_, __) => const CoachScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: '/strava', builder: (_, __) => const StravaScreen()),
+            GoRoute(path: '/tips', builder: (_, __) => const TipsScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: '/tips', builder: (_, __) => const TipsScreen()),
+            GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
           ]),
         ],
       ),

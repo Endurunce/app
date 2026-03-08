@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/animated_list_item.dart';
-import '../auth/auth_provider.dart';
 import '../injury/injury_provider.dart';
 import 'plan_provider.dart';
 import 'session_type_style.dart';
@@ -159,16 +158,7 @@ class _PlanView extends ConsumerWidget {
           snap:     true,
           pinned:   false,
           title:    const Text('Trainingsplan'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout_outlined),
-              tooltip: 'Uitloggen',
-              onPressed: () {
-                ref.read(authProvider.notifier).logout();
-                context.go('/login');
-              },
-            ),
-          ],
+          actions: const [],
         ),
 
         // Plan header card
