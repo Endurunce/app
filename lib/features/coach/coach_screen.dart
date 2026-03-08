@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../shared/theme/app_theme.dart';
@@ -13,8 +14,8 @@ class CoachScreen extends ConsumerStatefulWidget {
 }
 
 class _CoachScreenState extends ConsumerState<CoachScreen> {
-  final _inputCtrl   = TextEditingController();
-  final _scrollCtrl  = ScrollController();
+  final _inputCtrl  = TextEditingController();
+  final _scrollCtrl = ScrollController();
 
   static const _suggestions = [
     'Hoe herstel ik sneller?',
@@ -58,8 +59,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(coachProvider);
 
-    // Scroll to bottom when new messages arrive
-    if (state.messages.isNotEmpty) _scrollToBottom();
+    if (state.messages.isNotEmpty || state.sending) _scrollToBottom();
 
     return Scaffold(
       appBar: AppBar(
@@ -88,24 +88,26 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                         message: state.error!,
                         onRetry: () => ref.read(coachProvider.notifier).load(),
                       )
-                    : state.messages.isEmpty
+                    : state.messages.isEmpty && !state.sending
                         ? const _EmptyState()
                         : ListView.builder(
                             controller: _scrollCtrl,
                             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                            itemCount: state.messages.length,
-                            itemBuilder: (ctx, i) => _MessageBubble(
-                              message: state.messages[i],
-                            ),
+                            // +1 for typing bubble when sending
+                            itemCount: state.messages.length + (state.sending ? 1 : 0),
+                            itemBuilder: (ctx, i) {
+                              if (i == state.messages.length) {
+                                // Typing indicator at the end
+                                return const _TypingBubble();
+                              }
+                              return _MessageBubble(message: state.messages[i]);
+                            },
                           ),
           ),
 
           // Quick suggestions when < 3 messages
           if (state.messages.length < 3 && !state.loading)
-            _SuggestionBar(
-              suggestions: _suggestions,
-              onTap: _send,
-            ),
+            _SuggestionBar(suggestions: _suggestions, onTap: _send),
 
           // Error banner when sending fails but there are already messages
           if (state.error != null && state.messages.isNotEmpty)
@@ -127,6 +129,107 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
             onSend: _send,
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Typing indicator bubble ────────────────────────────────────────────────────
+
+class _TypingBubble extends StatefulWidget {
+  const _TypingBubble();
+
+  @override
+  State<_TypingBubble> createState() => _TypingBubbleState();
+}
+
+class _TypingBubbleState extends State<_TypingBubble>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Container(
+            width: 32, height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.brand.withOpacity(.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(child: Text('🤖', style: TextStyle(fontSize: 16))),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceHigh,
+              borderRadius: const BorderRadius.only(
+                topLeft:     Radius.circular(16),
+                topRight:    Radius.circular(16),
+                bottomLeft:  Radius.circular(4),
+                bottomRight: Radius.circular(16),
+              ),
+              border: Border.all(color: AppColors.outline),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(3, (i) => _Dot(controller: _ctrl, index: i)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Dot extends StatelessWidget {
+  final AnimationController controller;
+  final int index;
+  const _Dot({required this.controller, required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    // Each dot starts its bounce at a different offset
+    final delay = index / 3.0;
+    final animation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: -6.0), weight: 25),
+      TweenSequenceItem(tween: Tween(begin: -6.0, end: 0.0), weight: 25),
+      TweenSequenceItem(tween: ConstantTween(0.0),            weight: 50),
+    ]).animate(CurvedAnimation(
+      parent: controller,
+      curve: Interval(delay, delay + 0.6, curve: Curves.easeInOut),
+    ));
+
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (_, __) => Container(
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        width: 7, height: 7,
+        transform: Matrix4.translationValues(0, animation.value, 0),
+        decoration: const BoxDecoration(
+          color: AppColors.muted,
+          shape: BoxShape.circle,
+        ),
       ),
     );
   }
@@ -215,14 +318,38 @@ class _MessageBubbleState extends State<_MessageBubble>
                           : AppColors.outline,
                     ),
                   ),
-                  child: Text(
-                    widget.message.content,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isUser ? AppColors.brand : AppColors.onBg,
-                      height: 1.5,
-                    ),
-                  ),
+                  child: isUser
+                      ? Text(
+                          widget.message.content,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.brand,
+                            height: 1.5,
+                          ),
+                        )
+                      : MarkdownBody(
+                          data: widget.message.content,
+                          shrinkWrap: true,
+                          styleSheet: MarkdownStyleSheet(
+                            p:          const TextStyle(fontSize: 14, color: AppColors.onBg, height: 1.5),
+                            strong:     const TextStyle(fontSize: 14, color: AppColors.onBg, fontWeight: FontWeight.w700),
+                            em:         const TextStyle(fontSize: 14, color: AppColors.onBg, fontStyle: FontStyle.italic),
+                            code:       TextStyle(fontSize: 13, color: AppColors.brand, backgroundColor: AppColors.brand.withOpacity(.08), fontFamily: 'monospace'),
+                            codeblockDecoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            h1:         const TextStyle(fontSize: 17, color: AppColors.onBg, fontWeight: FontWeight.w700),
+                            h2:         const TextStyle(fontSize: 15, color: AppColors.onBg, fontWeight: FontWeight.w700),
+                            h3:         const TextStyle(fontSize: 14, color: AppColors.onBg, fontWeight: FontWeight.w600),
+                            listBullet: const TextStyle(fontSize: 14, color: AppColors.brand),
+                            blockquoteDecoration: BoxDecoration(
+                              border: Border(left: BorderSide(color: AppColors.brand, width: 3)),
+                              color: AppColors.brand.withOpacity(.05),
+                            ),
+                            blockquotePadding: const EdgeInsets.fromLTRB(12, 4, 8, 4),
+                          ),
+                        ),
                 ),
               ),
               if (isUser) const SizedBox(width: 8),
@@ -262,14 +389,8 @@ class _SuggestionBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: AppColors.outlineHigh),
                 ),
-                child: Text(
-                  s,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.onSurface,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                child: Text(s, style: const TextStyle(
+                  fontSize: 13, color: AppColors.onSurface, fontWeight: FontWeight.w500)),
               ),
             ),
           )).toList(),
@@ -285,11 +406,7 @@ class _InputBar extends StatelessWidget {
   final TextEditingController controller;
   final bool sending;
   final void Function(String) onSend;
-  const _InputBar({
-    required this.controller,
-    required this.sending,
-    required this.onSend,
-  });
+  const _InputBar({required this.controller, required this.sending, required this.onSend});
 
   @override
   Widget build(BuildContext context) {
@@ -336,9 +453,7 @@ class _InputBar extends StatelessWidget {
                   child: sending
                       ? const SizedBox(
                           width: 18, height: 18,
-                          child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2.5),
-                        )
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
                       : const Icon(Icons.send_rounded, color: Colors.white, size: 18),
                 ),
               ),
@@ -381,9 +496,7 @@ class _SkeletonBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-      children: [
-        Shimmer(width: width, height: 40, borderRadius: 14),
-      ],
+      children: [Shimmer(width: width, height: 40, borderRadius: 14)],
     );
   }
 }
@@ -407,9 +520,7 @@ class _EmptyState extends StatelessWidget {
                 color: AppColors.brand.withOpacity(.12),
                 shape: BoxShape.circle,
               ),
-              child: const Center(
-                child: Text('🤖', style: TextStyle(fontSize: 36)),
-              ),
+              child: const Center(child: Text('🤖', style: TextStyle(fontSize: 36))),
             ),
             const SizedBox(height: 20),
             Text('Hoi! Ik ben je AI-coach.',
