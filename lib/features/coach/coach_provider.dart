@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
 
@@ -94,11 +95,19 @@ class CoachNotifier extends Notifier<CoachState> {
         sending: false,
       );
     } catch (e) {
+      String errorMsg = 'Bericht versturen mislukt. Probeer opnieuw.';
+      if (e is DioException) {
+        final code   = e.response?.statusCode;
+        final body   = e.response?.data;
+        final detail = (body is Map) ? body['error'] as String? : null;
+        if (code == 400 && detail != null) errorMsg = detail;
+        if (code == 429) errorMsg = detail ?? 'Je hebt het berichtlimiet bereikt. Probeer later opnieuw.';
+      }
       // Remove the optimistic user message on failure
       state = state.copyWith(
         messages: state.messages.where((m) => m.id != 'pending').toList(),
         sending: false,
-        error: 'Bericht versturen mislukt. Probeer opnieuw.',
+        error: errorMsg,
       );
     }
   }
