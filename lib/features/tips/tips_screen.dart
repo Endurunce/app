@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../shared/theme/app_theme.dart';
+import '../../shared/widgets/animated_list_item.dart';
 
 class TipsScreen extends StatelessWidget {
   const TipsScreen({super.key});
@@ -52,16 +53,22 @@ class TipsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
-          ..._tips.map((tip) => _TipCard(
-            emoji: tip.emoji,
-            title: tip.title,
-            body:  tip.body,
+          ..._tips.asMap().entries.map((e) => AnimatedListItem(
+            index: e.key,
+            child: _TipCard(
+              emoji: e.value.emoji,
+              title: e.value.title,
+              body:  e.value.body,
+            ),
           )),
           const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: () => context.push('/intake'),
-            icon: const Icon(Icons.edit_outlined, size: 18),
-            label: const Text('Profiel bijwerken'),
+          AnimatedListItem(
+            index: _tips.length,
+            child: FilledButton.icon(
+              onPressed: () => context.push('/intake'),
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              label: const Text('Profiel bijwerken'),
+            ),
           ),
         ],
       ),

@@ -15,6 +15,7 @@ class IntakeScreen extends ConsumerStatefulWidget {
 
 class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   int _step = 1;
+  int _fromStep = 1;
   static const _totalSteps = 7;
   bool _submitting = false;
 
@@ -82,18 +83,18 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
 
   void _nextStep() {
     if (_step < _totalSteps) {
-      setState(() => _step++);
+      setState(() { _fromStep = _step; _step++; });
     } else {
       _submit();
     }
   }
 
   void _prevStep() {
-    if (_step > 1) setState(() => _step--);
+    if (_step > 1) setState(() { _fromStep = _step; _step--; });
   }
 
   void _skipStep() {
-    if (_step < _totalSteps) setState(() => _step++);
+    if (_step < _totalSteps) setState(() { _fromStep = _step; _step++; });
   }
 
   Future<void> _submit() async {
@@ -197,9 +198,26 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
 
           // Step content
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: _buildStep(),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 280),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeIn,
+              transitionBuilder: (child, animation) {
+                final goingForward = _step >= _fromStep;
+                final offset = Tween<Offset>(
+                  begin: Offset(goingForward ? 0.06 : -0.06, 0),
+                  end: Offset.zero,
+                ).animate(animation);
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(position: offset, child: child),
+                );
+              },
+              child: SingleChildScrollView(
+                key: ValueKey(_step),
+                padding: const EdgeInsets.all(20),
+                child: _buildStep(),
+              ),
             ),
           ),
 

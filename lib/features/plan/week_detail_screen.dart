@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../shared/theme/app_theme.dart';
+import '../../shared/widgets/animated_list_item.dart';
+import '../../shared/widgets/shimmer.dart';
 import 'plan_provider.dart';
 import 'session_type_style.dart';
 
@@ -68,10 +70,13 @@ class WeekDetailScreen extends ConsumerWidget {
       body: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         itemCount: week.days.length,
-        itemBuilder: (ctx, i) => _DayCard(
-          day:  week.days[i],
-          week: week,
-          plan: plan,
+        itemBuilder: (ctx, i) => AnimatedListItem(
+          index: i,
+          child: _DayCard(
+            day:  week.days[i],
+            week: week,
+            plan: plan,
+          ),
         ),
       ),
     );
@@ -186,48 +191,63 @@ class _DayCardState extends ConsumerState<_DayCard> {
                     onTap: day.completed
                         ? _uncomplete
                         : () => setState(() => _expanded = !_expanded),
-                    child: day.completed
-                        ? Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.easy.withOpacity(.15),
-                              borderRadius: BorderRadius.circular(8),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      transitionBuilder: (child, animation) => ScaleTransition(
+                        scale: CurvedAnimation(
+                          parent: animation, curve: Curves.easeOutBack),
+                        child: FadeTransition(opacity: animation, child: child),
+                      ),
+                      child: day.completed
+                          ? Container(
+                              key: const ValueKey('done'),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.easy.withOpacity(.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: _uncompleting
+                                  ? const SizedBox(width: 16, height: 16,
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.easy, strokeWidth: 2))
+                                  : const Text('✓',
+                                      style: TextStyle(
+                                        fontSize: 16, color: AppColors.easy,
+                                        fontWeight: FontWeight.w800)),
+                            )
+                          : Container(
+                              key: const ValueKey('open'),
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceHigh,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.outline),
+                              ),
+                              child: Icon(
+                                _expanded
+                                    ? Icons.expand_less
+                                    : Icons.radio_button_unchecked,
+                                size: 18, color: AppColors.muted,
+                              ),
                             ),
-                            child: _uncompleting
-                                ? const SizedBox(width: 16, height: 16,
-                                    child: CircularProgressIndicator(
-                                      color: AppColors.easy, strokeWidth: 2))
-                                : const Text('✓',
-                                    style: TextStyle(
-                                      fontSize: 16, color: AppColors.easy,
-                                      fontWeight: FontWeight.w800)),
-                          )
-                        : Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceHigh,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.outline),
-                            ),
-                            child: Icon(
-                              _expanded
-                                  ? Icons.expand_less
-                                  : Icons.radio_button_unchecked,
-                              size: 18, color: AppColors.muted,
-                            ),
-                          ),
+                    ),
                   ),
               ]),
             ),
 
-            if (_expanded && !day.completed)
-              _FeedbackForm(
-                day:          widget.day,
-                week:         widget.week,
-                plan:         widget.plan,
-                sessionColor: s.color,
-                onDone:       () => setState(() => _expanded = false),
-              ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              child: _expanded && !day.completed
+                  ? _FeedbackForm(
+                      day:          widget.day,
+                      week:         widget.week,
+                      plan:         widget.plan,
+                      sessionColor: s.color,
+                      onDone:       () => setState(() => _expanded = false),
+                    )
+                  : const SizedBox.shrink(),
+            ),
           ],
         ),
       ),
@@ -355,12 +375,23 @@ class _SessionDetailSheetState extends ConsumerState<_SessionDetailSheet> {
 
               const SizedBox(height: 20),
 
-              if (_loading)
-                ..._buildSkeleton()
-              else if (_advice == null)
-                _buildFallback(context, s)
-              else
-                ..._buildAdvice(context),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 350),
+                child: _loading
+                    ? Column(
+                        key: const ValueKey('skeleton'),
+                        children: _buildSkeleton(),
+                      )
+                    : _advice == null
+                        ? KeyedSubtree(
+                            key: const ValueKey('fallback'),
+                            child: _buildFallback(context, s),
+                          )
+                        : Column(
+                            key: const ValueKey('advice'),
+                            children: _buildAdvice(context),
+                          ),
+              ),
             ],
           ),
         );
@@ -532,12 +563,10 @@ class _SkeletonBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Shimmer(
+      width: double.infinity,
       height: height,
-      decoration: BoxDecoration(
-        color: AppColors.surfaceHigher,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      borderRadius: 12,
     );
   }
 }

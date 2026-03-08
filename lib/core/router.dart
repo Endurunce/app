@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,6 +13,37 @@ import '../features/strava/strava_screen.dart';
 import '../features/tips/tips_screen.dart';
 import '../features/profile/intake_screen.dart';
 import '../shared/widgets/main_shell.dart';
+
+// Shared transition builders
+CustomTransitionPage<T> _slidePage<T>(BuildContext ctx, GoRouterState state, Widget child) =>
+    CustomTransitionPage<T>(
+      key: state.pageKey,
+      child: child,
+      transitionDuration: const Duration(milliseconds: 320),
+      reverseTransitionDuration: const Duration(milliseconds: 280),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final offset = Tween<Offset>(
+          begin: const Offset(1.0, 0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+        final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+        return FadeTransition(
+          opacity: fade,
+          child: SlideTransition(position: offset, child: child),
+        );
+      },
+    );
+
+CustomTransitionPage<T> _fadePage<T>(BuildContext ctx, GoRouterState state, Widget child) =>
+    CustomTransitionPage<T>(
+      key: state.pageKey,
+      child: child,
+      transitionDuration: const Duration(milliseconds: 280),
+      transitionsBuilder: (context, animation, _, child) => FadeTransition(
+        opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+        child: child,
+      ),
+    );
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -29,9 +61,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: '/login',    builder: (_, __) => const LoginScreen()),
-      GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
-      GoRoute(path: '/intake',   builder: (_, __) => const IntakeScreen()),
+      GoRoute(
+        path: '/login',
+        pageBuilder: (ctx, state) => _fadePage(ctx, state, const LoginScreen()),
+      ),
+      GoRoute(
+        path: '/register',
+        pageBuilder: (ctx, state) => _fadePage(ctx, state, const RegisterScreen()),
+      ),
+      GoRoute(
+        path: '/intake',
+        pageBuilder: (ctx, state) => _slidePage(ctx, state, const IntakeScreen()),
+      ),
 
       // Main shell with bottom nav
       StatefulShellRoute.indexedStack(
@@ -44,36 +85,27 @@ final routerProvider = Provider<GoRouter>((ref) {
               routes: [
                 GoRoute(
                   path: 'week/:weekNumber',
-                  builder: (_, state) => WeekDetailScreen(
-                    weekNumber: int.parse(state.pathParameters['weekNumber']!),
+                  pageBuilder: (ctx, state) => _slidePage(
+                    ctx, state,
+                    WeekDetailScreen(
+                      weekNumber: int.parse(state.pathParameters['weekNumber']!),
+                    ),
                   ),
                 ),
               ],
             ),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/injuries',
-              builder: (_, __) => const InjuryScreen(),
-            ),
+            GoRoute(path: '/injuries', builder: (_, __) => const InjuryScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/coach',
-              builder: (_, __) => const CoachScreen(),
-            ),
+            GoRoute(path: '/coach', builder: (_, __) => const CoachScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/strava',
-              builder: (_, __) => const StravaScreen(),
-            ),
+            GoRoute(path: '/strava', builder: (_, __) => const StravaScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/tips',
-              builder: (_, __) => const TipsScreen(),
-            ),
+            GoRoute(path: '/tips', builder: (_, __) => const TipsScreen()),
           ]),
         ],
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../shared/theme/app_theme.dart';
+import '../../shared/widgets/animated_list_item.dart';
 import 'strava_provider.dart';
 
 class StravaScreen extends ConsumerStatefulWidget {
@@ -436,7 +437,9 @@ class _ConnectedView extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
         // Athlete card
-        Container(
+        AnimatedListItem(
+          index: 0,
+          child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppColors.surface,
@@ -477,6 +480,7 @@ class _ConnectedView extends ConsumerWidget {
             const Text('🏅', style: TextStyle(fontSize: 28)),
           ]),
         ),
+        ), // AnimatedListItem
 
         const SizedBox(height: 20),
 
@@ -498,14 +502,20 @@ class _ConnectedView extends ConsumerWidget {
             onPressed: () => ref.read(stravaProvider.notifier).loadActivities(),
           ),
         ] else ...[
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-              '${state.activities.length} ACTIVITEITEN',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
+          AnimatedListItem(
+            index: 1,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                '${state.activities.length} ACTIVITEITEN',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
+              ),
             ),
           ),
-          ...state.activities.map((a) => _ActivityCard(activity: a, typeEmoji: _typeEmoji)),
+          ...state.activities.asMap().entries.map((e) => AnimatedListItem(
+            index: e.key + 2,
+            child: _ActivityCard(activity: e.value, typeEmoji: _typeEmoji),
+          )),
         ],
       ],
     );

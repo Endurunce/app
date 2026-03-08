@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../shared/theme/app_theme.dart';
+import '../../shared/widgets/shimmer.dart';
 import 'coach_provider.dart';
 
 class CoachScreen extends ConsumerStatefulWidget {
@@ -133,64 +134,101 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
 
 // ── Message bubble ─────────────────────────────────────────────────────────────
 
-class _MessageBubble extends StatelessWidget {
+class _MessageBubble extends StatefulWidget {
   final CoachMessage message;
   const _MessageBubble({required this.message});
 
   @override
-  Widget build(BuildContext context) {
-    final isUser = message.role == 'user';
+  State<_MessageBubble> createState() => _MessageBubbleState();
+}
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (!isUser) ...[
-            Container(
-              width: 32, height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.brand.withOpacity(.15),
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: Text('🤖', style: TextStyle(fontSize: 16)),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: isUser
-                    ? AppColors.brand.withOpacity(.2)
-                    : AppColors.surfaceHigh,
-                borderRadius: BorderRadius.only(
-                  topLeft:     const Radius.circular(16),
-                  topRight:    const Radius.circular(16),
-                  bottomLeft:  Radius.circular(isUser ? 16 : 4),
-                  bottomRight: Radius.circular(isUser ? 4 : 16),
+class _MessageBubbleState extends State<_MessageBubble>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _opacity;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    )..forward();
+    _opacity = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    final isUser = widget.message.role == 'user';
+    _slide = Tween<Offset>(
+      begin: Offset(isUser ? 0.08 : -0.08, 0.04),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isUser = widget.message.role == 'user';
+
+    return FadeTransition(
+      opacity: _opacity,
+      child: SlideTransition(
+        position: _slide,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (!isUser) ...[
+                Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.brand.withOpacity(.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Text('🤖', style: TextStyle(fontSize: 16)),
+                  ),
                 ),
-                border: Border.all(
-                  color: isUser
-                      ? AppColors.brand.withOpacity(.3)
-                      : AppColors.outline,
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isUser
+                        ? AppColors.brand.withOpacity(.2)
+                        : AppColors.surfaceHigh,
+                    borderRadius: BorderRadius.only(
+                      topLeft:     const Radius.circular(16),
+                      topRight:    const Radius.circular(16),
+                      bottomLeft:  Radius.circular(isUser ? 16 : 4),
+                      bottomRight: Radius.circular(isUser ? 4 : 16),
+                    ),
+                    border: Border.all(
+                      color: isUser
+                          ? AppColors.brand.withOpacity(.3)
+                          : AppColors.outline,
+                    ),
+                  ),
+                  child: Text(
+                    widget.message.content,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isUser ? AppColors.brand : AppColors.onBg,
+                      height: 1.5,
+                    ),
+                  ),
                 ),
               ),
-              child: Text(
-                message.content,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isUser ? AppColors.brand : AppColors.onBg,
-                  height: 1.5,
-                ),
-              ),
-            ),
+              if (isUser) const SizedBox(width: 8),
+            ],
           ),
-          if (isUser) const SizedBox(width: 8),
-        ],
+        ),
       ),
     );
   }
@@ -344,13 +382,7 @@ class _SkeletonBubble extends StatelessWidget {
     return Row(
       mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
       children: [
-        Container(
-          width: width, height: 40,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceHigh,
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
+        Shimmer(width: width, height: 40, borderRadius: 14),
       ],
     );
   }
