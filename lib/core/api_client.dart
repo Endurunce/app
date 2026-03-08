@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 // const _baseUrl = 'http://10.0.2.2:3000'; // Android emulator → localhost
-const _baseUrl = 'http://localhost:3000'; // Web / desktop
+const _baseUrl = 'https://endurunce-api.fly.dev'; // Production
 
 final _storage = FlutterSecureStorage();
 
