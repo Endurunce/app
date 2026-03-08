@@ -1,0 +1,96 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [master, main]
+
+jobs:
+  integration-tests:
+    name: Flutter Integration Tests (Chrome)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.29.0"
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Setup ChromeDriver
+        uses: nanasess/setup-chromedriver@v2
+
+      - name: Start virtual display
+        run: |
+          Xvfb :99 -screen 0 1920x1080x24 &
+          sleep 1
+
+      - name: Start ChromeDriver
+        run: |
+          chromedriver --port=4444 &
+          sleep 2
+
+      - name: E2E — Auth
+        env:
+          DISPLAY: :99
+        run: |
+          flutter drive \
+            --driver=test_driver/integration_test.dart \
+            --target=integration_test/auth_test.dart \
+            -d chrome
+
+      - name: E2E — Intake
+        env:
+          DISPLAY: :99
+        continue-on-error: true
+        run: |
+          flutter drive \
+            --driver=test_driver/integration_test.dart \
+            --target=integration_test/intake_test.dart \
+            -d chrome
+
+      - name: E2E — Plan
+        env:
+          DISPLAY: :99
+        continue-on-error: true
+        run: |
+          flutter drive \
+            --driver=test_driver/integration_test.dart \
+            --target=integration_test/plan_test.dart \
+            -d chrome
+
+      - name: E2E — Sessie
+        env:
+          DISPLAY: :99
+        continue-on-error: true
+        run: |
+          flutter drive \
+            --driver=test_driver/integration_test.dart \
+            --target=integration_test/session_test.dart \
+            -d chrome
+
+      - name: E2E — Coach
+        env:
+          DISPLAY: :99
+        continue-on-error: true
+        run: |
+          flutter drive \
+            --driver=test_driver/integration_test.dart \
+            --target=integration_test/coach_test.dart \
+            -d chrome
+
+      - name: E2E — Blessures
+        env:
+          DISPLAY: :99
+        continue-on-error: true
+        run: |
+          flutter drive \
+            --driver=test_driver/integration_test.dart \
+            --target=integration_test/injury_test.dart \
+            -d chrome
