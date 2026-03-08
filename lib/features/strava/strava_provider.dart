@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
@@ -31,14 +33,14 @@ class StravaActivity {
   });
 
   factory StravaActivity.fromJson(Map<String, dynamic> j) => StravaActivity(
-    id:                  j['id'].toString(),
-    name:                j['name'] as String,
-    type:                j['type'] as String,
-    distanceM:           (j['distance'] as num).toDouble(),
-    movingTimeSec:       j['moving_time'] as int,
-    startDate:           DateTime.parse(j['start_date'] as String),
-    averageHeartrate:    (j['average_heartrate'] as num?)?.toDouble(),
-    totalElevationGain:  (j['total_elevation_gain'] as num?)?.toDouble(),
+    id:                 j['id'].toString(),
+    name:               j['name'] as String,
+    type:               j['type'] as String,
+    distanceM:          (j['distance'] as num).toDouble(),
+    movingTimeSec:      j['moving_time'] as int,
+    startDate:          DateTime.parse(j['start_date'] as String),
+    averageHeartrate:   (j['average_heartrate'] as num?)?.toDouble(),
+    totalElevationGain: (j['total_elevation_gain'] as num?)?.toDouble(),
   );
 }
 
@@ -48,8 +50,8 @@ class StravaState {
   final String? avatarUrl;
   final List<StravaActivity> activities;
   final bool loading;
+  final bool waitingForCallback; // browser open, polling
   final String? error;
-  final bool connecting;
 
   const StravaState({
     this.connected = false,
@@ -57,8 +59,8 @@ class StravaState {
     this.avatarUrl,
     this.activities = const [],
     this.loading = false,
+    this.waitingForCallback = false,
     this.error,
-    this.connecting = false,
   });
 
   StravaState copyWith({
@@ -67,21 +69,23 @@ class StravaState {
     String? avatarUrl,
     List<StravaActivity>? activities,
     bool? loading,
+    bool? waitingForCallback,
     String? error,
     bool clearError = false,
-    bool? connecting,
   }) => StravaState(
-    connected:   connected   ?? this.connected,
-    displayName: displayName ?? this.displayName,
-    avatarUrl:   avatarUrl   ?? this.avatarUrl,
-    activities:  activities  ?? this.activities,
-    loading:     loading     ?? this.loading,
-    error:       clearError ? null : (error ?? this.error),
-    connecting:  connecting  ?? this.connecting,
+    connected:           connected           ?? this.connected,
+    displayName:         displayName         ?? this.displayName,
+    avatarUrl:           avatarUrl           ?? this.avatarUrl,
+    activities:          activities          ?? this.activities,
+    loading:             loading             ?? this.loading,
+    waitingForCallback:  waitingForCallback  ?? this.waitingForCallback,
+    error:               clearError ? null : (error ?? this.error),
   );
 }
 
 class StravaNotifier extends Notifier<StravaState> {
+  Timer? _pollTimer;
+
   @override
   StravaState build() => const StravaState();
 
@@ -103,34 +107,48 @@ class StravaNotifier extends Notifier<StravaState> {
     }
   }
 
-  Future<void> connectWithCode({
-    required String clientId,
-    required String clientSecret,
-    required String code,
-  }) async {
-    state = state.copyWith(connecting: true, clearError: true);
+  /// Haalt de OAuth-URL op van de backend, opent de browser en begint te pollen.
+  Future<void> startConnect() async {
+    state = state.copyWith(clearError: true, waitingForCallback: true);
     try {
       final client = ref.read(apiClientProvider);
-      final resp = await client.post('/api/strava/exchange-code', {
-        'client_id':     clientId,
-        'client_secret': clientSecret,
-        'code':          code,
-        'redirect_uri':  'http://localhost',
-      });
-      final data = resp as Map<String, dynamic>;
-      state = state.copyWith(
-        connecting:  false,
-        connected:   true,
-        displayName: data['display_name'] as String?,
-        avatarUrl:   data['avatar_url'] as String?,
-      );
-      await loadActivities();
+      final data = await client.get('/api/strava/connect') as Map<String, dynamic>;
+      final authUrl = data['auth_url'] as String;
+
+      await launchUrl(Uri.parse(authUrl), mode: LaunchMode.externalApplication);
+
+      _startPolling();
     } catch (e) {
       state = state.copyWith(
-        connecting: false,
-        error: 'Verbinden mislukt. Controleer je codes en probeer opnieuw.',
+        waitingForCallback: false,
+        error: 'Verbinden met Strava mislukt. Probeer opnieuw.',
       );
     }
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+      try {
+        final client = ref.read(apiClientProvider);
+        final data = await client.get('/api/strava/status') as Map<String, dynamic>;
+        if (data['connected'] == true) {
+          _pollTimer?.cancel();
+          state = state.copyWith(
+            waitingForCallback: false,
+            connected:   true,
+            displayName: data['display_name'] as String?,
+            avatarUrl:   data['avatar_url'] as String?,
+          );
+          await loadActivities();
+        }
+      } catch (_) {}
+    });
+  }
+
+  void cancelConnect() {
+    _pollTimer?.cancel();
+    state = state.copyWith(waitingForCallback: false, clearError: true);
   }
 
   Future<void> loadActivities() async {
@@ -143,16 +161,6 @@ class StravaNotifier extends Notifier<StravaState> {
           .toList();
       state = state.copyWith(activities: acts);
     } catch (_) {}
-  }
-
-  void openStravaOAuth(String clientId) {
-    final url = 'https://www.strava.com/oauth/authorize'
-        '?client_id=$clientId'
-        '&redirect_uri=${Uri.encodeComponent('http://localhost')}'
-        '&response_type=code'
-        '&approval_prompt=auto'
-        '&scope=activity:read_all';
-    launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 }
 
