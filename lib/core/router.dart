@@ -19,6 +19,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final onAuth = state.matchedLocation.startsWith('/login') ||
           state.matchedLocation.startsWith('/register');
 
+      if (state.matchedLocation == '/') return loggedIn ? '/plan' : '/login';
       if (!loggedIn && !onAuth) return '/login';
       if (loggedIn && onAuth) return '/plan';
       return null;
