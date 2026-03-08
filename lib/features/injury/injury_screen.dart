@@ -284,8 +284,19 @@ class _ReportInjurySheetState extends ConsumerState<_ReportInjurySheet> {
                 ),
               )),
 
-              Text('Blessure melden',
-                  style: Theme.of(context).textTheme.headlineSmall),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('Blessure melden',
+                        style: Theme.of(context).textTheme.headlineSmall),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                    tooltip: 'Sluiten',
+                  ),
+                ],
+              ),
               const SizedBox(height: 4),
               Text('Beschrijf zo nauwkeurig mogelijk',
                   style: Theme.of(context).textTheme.bodySmall),
