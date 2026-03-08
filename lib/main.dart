@@ -10,17 +10,19 @@ import 'shared/theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // On web: check if we're returning from Strava/Google OAuth (token in URL hash)
+  // On web: check if we're returning from Strava/Google OAuth (token in URL hash).
+  // New format: /#/plan?token=...  (GoRouter-compatible)
+  // Old format: /#token=...        (kept for backward compat)
   String? webDisplayName;
   if (kIsWeb) {
-    final uri = Uri.base;
-    final fragment = uri.fragment; // e.g. "token=xxx&is_admin=false&email=...&display_name=..."
+    final fragment = Uri.base.fragment; // e.g. "/plan?token=xxx&email=...&display_name=..."
     if (fragment.contains('token=')) {
-      final params = Uri.splitQueryString(fragment);
+      // Extract the query string: either after '?' or treat the whole fragment as query
+      final qMark = fragment.indexOf('?');
+      final queryStr = qMark >= 0 ? fragment.substring(qMark + 1) : fragment;
+      final params = Uri.splitQueryString(queryStr);
       final token = params['token'];
-      if (token != null) {
-        await saveToken(token);
-      }
+      if (token != null) await saveToken(token);
       webDisplayName = params['display_name'];
     }
   }
