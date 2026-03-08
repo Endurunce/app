@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
-import '../../features/auth/auth_provider.dart';
 import '../../features/plan/plan_provider.dart';
 import '../../shared/theme/app_theme.dart';
 
@@ -16,81 +15,127 @@ class IntakeScreen extends ConsumerStatefulWidget {
 
 class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   int _step = 1;
-  static const _totalSteps = 5;
+  static const _totalSteps = 7;
   bool _submitting = false;
 
-  final _nameCtrl      = TextEditingController();
-  final _ageCtrl       = TextEditingController();
-  String _gender       = 'female';
-  String _runningYears = 'two_to_five_years';
-  double _weeklyKm     = 40;
-  String _raceGoal     = 'half_marathon';
-  String _raceDate     = '';
-  String _terrain      = 'road';
-  final Set<int> _trainingDays = {1, 3, 5, 6};
-  int _longRunDay = 6;
-  String _sleep = 'seven_to_eight';
+  // Step 1
+  final _nameCtrl = TextEditingController();
+  final _ageCtrl  = TextEditingController();
+  String? _gender;
+
+  // Step 2
+  String? _runningYears;
+  double  _weeklyKm    = 40;
+  String  _previousUltra = 'none';
+
+  // Step 3 (optional)
+  final _time10kCtrl    = TextEditingController();
+  final _timeHalfCtrl   = TextEditingController();
+  final _timeMarathonCtrl = TextEditingController();
+
+  // Step 4
+  String? _raceGoal;
+  double? _raceGoalCustomKm;
+  DateTime? _raceDate;
+  String? _terrain;
+
+  // Step 5
+  final Set<int> _trainingDays = {};
+  final Map<int, int> _dayDurations = {};
+  int? _longRunDay;
+
+  // Step 6 (optional)
+  bool _hrAuto = true;
+  final _maxHrCtrl  = TextEditingController();
+  final _restHrCtrl = TextEditingController(text: '55');
+
+  // Step 7
+  String? _sleep;
+  final _complaintsCtrl   = TextEditingController();
+  final Set<String> _previousInjuries = {};
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _ageCtrl.dispose();
+    _time10kCtrl.dispose();
+    _timeHalfCtrl.dispose();
+    _timeMarathonCtrl.dispose();
+    _maxHrCtrl.dispose();
+    _restHrCtrl.dispose();
+    _complaintsCtrl.dispose();
     super.dispose();
   }
 
   bool get _canNext {
-    if (_step == 1) return _nameCtrl.text.isNotEmpty && _ageCtrl.text.isNotEmpty;
-    if (_step == 3) return _raceDate.isNotEmpty;
-    return true;
+    switch (_step) {
+      case 1: return _nameCtrl.text.isNotEmpty && _ageCtrl.text.isNotEmpty && _gender != null;
+      case 2: return _runningYears != null;
+      case 3: return true; // optional
+      case 4: return _raceGoal != null && _raceDate != null && _terrain != null;
+      case 5: return _trainingDays.length >= 2 && _longRunDay != null && _trainingDays.contains(_longRunDay);
+      case 6: return true; // optional
+      case 7: return _sleep != null;
+      default: return true;
+    }
   }
 
-  void _next() {
-    if (_step < _totalSteps) setState(() => _step++);
-    else _submit();
+  void _nextStep() {
+    if (_step < _totalSteps) {
+      setState(() => _step++);
+    } else {
+      _submit();
+    }
   }
 
-  void _back() {
+  void _prevStep() {
     if (_step > 1) setState(() => _step--);
+  }
+
+  void _skipStep() {
+    if (_step < _totalSteps) setState(() => _step++);
   }
 
   Future<void> _submit() async {
     setState(() => _submitting = true);
     try {
-      final userId = ref.read(authProvider).userId ?? '';
       final client = ref.read(apiClientProvider);
-      final trainingDays = _trainingDays.toList()..sort();
+      final age = int.tryParse(_ageCtrl.text) ?? 30;
 
-      await client.post('/api/plans/generate', {
-        'profile': {
-          'id':      'ffffffff-ffff-ffff-ffff-ffffffffffff',
-          'user_id': userId,
-          'name':    _nameCtrl.text.trim(),
-          'age':     int.parse(_ageCtrl.text),
-          'gender':  _gender,
-          'running_years':   _runningYears,
-          'weekly_km':       _weeklyKm,
-          'previous_ultra':  'none',
-          'time_10k':        null,
-          'time_half_marathon': null,
-          'time_marathon':   null,
-          'race_goal':       _raceGoal,
-          'race_date':       _raceDate,
-          'terrain':         _terrain,
-          'training_days':   trainingDays,
-          'max_duration_per_day': trainingDays.map((d) => {
-            'day': d,
-            'max_minutes': d == _longRunDay ? 180 : 60,
-          }).toList(),
-          'long_run_day':    _longRunDay,
-          'max_hr':          null,
-          'rest_hr':         55,
-          'hr_zones':        null,
-          'sleep_hours':     _sleep,
-          'complaints':      null,
-          'previous_injuries': [],
-        },
-      });
+      final profile = {
+        'id':      'ffffffff-ffff-ffff-ffff-ffffffffffff',
+        'user_id': 'ffffffff-ffff-ffff-ffff-ffffffffffff',
+        'name':    _nameCtrl.text.trim(),
+        'age':     age,
+        'gender':  _gender ?? 'other',
+        'running_years':   _runningYears ?? 'two_to_five_years',
+        'weekly_km':       _weeklyKm,
+        'previous_ultra':  _previousUltra,
+        'time_10k':        _time10kCtrl.text.isNotEmpty ? _time10kCtrl.text : null,
+        'time_half_marathon': _timeHalfCtrl.text.isNotEmpty ? _timeHalfCtrl.text : null,
+        'time_marathon':   _timeMarathonCtrl.text.isNotEmpty ? _timeMarathonCtrl.text : null,
+        'race_goal':       _raceGoalCustomKm != null
+            ? {'custom': {'distance_km': _raceGoalCustomKm}}
+            : _raceGoal,
+        'race_date':       _raceDate?.toIso8601String().split('T')[0],
+        'terrain':         _terrain ?? 'road',
+        'training_days':   _trainingDays.toList()..sort(),
+        'max_duration_per_day': _trainingDays.map((d) => {
+          'day': d,
+          'max_minutes': _dayDurations[d] ?? 60,
+        }).toList(),
+        'long_run_day':    _longRunDay,
+        'max_hr':          _hrAuto
+            ? (220 - age)
+            : (_maxHrCtrl.text.isNotEmpty ? int.tryParse(_maxHrCtrl.text) : null),
+        'rest_hr':         int.tryParse(_restHrCtrl.text) ?? 55,
+        'hr_zones':        null,
+        'sleep_hours':     _sleep ?? 'seven_to_eight',
+        'complaints':      _complaintsCtrl.text.isNotEmpty ? _complaintsCtrl.text : null,
+        'previous_injuries': _previousInjuries.toList(),
+      };
 
+      await client.post('/api/plans/generate', {'profile': profile});
       await ref.read(planProvider.notifier).loadActivePlan();
       if (mounted) context.go('/plan');
     } catch (e) {
@@ -106,12 +151,21 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isSkippable = _step == 3 || _step == 6;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Jouw plan opmaken'),
         leading: _step > 1
-            ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: _back)
+            ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: _prevStep)
             : const CloseButton(),
+        actions: [
+          if (isSkippable)
+            TextButton(
+              onPressed: _skipStep,
+              child: const Text('Overslaan'),
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -123,7 +177,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                 children: List.generate(_totalSteps, (i) => Expanded(
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
                     height: 4,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(99),
@@ -149,20 +203,23 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
             ),
           ),
 
-          // Next button
+          // Bottom bar
           SafeArea(
             top: false,
             child: Padding(
               padding: EdgeInsets.fromLTRB(20, 0, 20,
                   MediaQuery.of(context).viewInsets.bottom + 16),
               child: FilledButton.icon(
-                onPressed: (_canNext && !_submitting) ? _next : null,
+                onPressed: (_canNext && !_submitting) ? _nextStep : null,
                 icon: _submitting
                     ? const SizedBox(height: 20, width: 20,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                    : Icon(_step == _totalSteps ? Icons.rocket_launch_outlined : Icons.arrow_forward,
+                    : Icon(
+                        _step == _totalSteps
+                            ? Icons.rocket_launch_outlined
+                            : Icons.arrow_forward,
                         size: 18),
-                label: Text(_step == _totalSteps ? 'Plan genereren' : 'Volgende'),
+                label: Text(_step == _totalSteps ? 'Plan aanmaken' : 'Volgende'),
               ),
             ),
           ),
@@ -175,14 +232,16 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     return switch (_step) {
       1 => _stepPersonal(),
       2 => _stepExperience(),
-      3 => _stepRaceGoal(),
-      4 => _stepTrainingDays(),
-      5 => _stepHealth(),
+      3 => _stepPerformance(),
+      4 => _stepRaceGoal(),
+      5 => _stepTrainingDays(),
+      6 => _stepHeartrate(),
+      7 => _stepHealth(),
       _ => const SizedBox.shrink(),
     };
   }
 
-  // ── Steps ──────────────────────────────────────────────────────────────────
+  // ── Step 1: Personal ─────────────────────────────────────────────────────────
 
   Widget _stepPersonal() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,13 +273,15 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
       const SizedBox(height: 20),
       _SectionLabel('Geslacht'),
       _ChipRow(
-        values: ['female', 'male', 'other'],
-        labels: ['Vrouw', 'Man', 'Anders'],
+        values:   ['male', 'female', 'other'],
+        labels:   ['Man', 'Vrouw', 'Anders'],
         selected: _gender,
         onSelect: (v) => setState(() => _gender = v),
       ),
     ],
   );
+
+  // ── Step 2: Experience ───────────────────────────────────────────────────────
 
   Widget _stepExperience() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,146 +290,559 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
           subtitle: 'Hoeveel ervaring heb je als hardloper?'),
       _SectionLabel('Hoe lang loop je al?'),
       _ChipRow(
-        values: ['less_than_two_years','two_to_five_years','five_to_ten_years','more_than_ten_years'],
-        labels: ['< 2 jaar','2–5 jaar','5–10 jaar','10+ jaar'],
+        values: [
+          'less_than_two_years', 'two_to_five_years',
+          'five_to_ten_years', 'more_than_ten_years',
+        ],
+        labels: ['< 2 jaar', '2-5 jaar', '5-10 jaar', '10+ jaar'],
         selected: _runningYears,
         onSelect: (v) => setState(() => _runningYears = v),
       ),
       const SizedBox(height: 24),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _SectionLabel('Weekkilometrage'),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.brand.withOpacity(.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text('${_weeklyKm.round()} km',
-                style: const TextStyle(
-                  color: AppColors.brand, fontWeight: FontWeight.w800)),
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        _SectionLabel('Weekkilometrage'),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.brand.withOpacity(.15),
+            borderRadius: BorderRadius.circular(8),
           ),
-        ],
-      ),
-      Slider(
-        value: _weeklyKm,
-        min: 10, max: 120, divisions: 22,
-        onChanged: (v) => setState(() => _weeklyKm = v),
+          child: Text('${_weeklyKm.round()} km/week',
+              style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w800)),
+        ),
+      ]),
+      Row(children: [
+        IconButton(
+          icon: const Icon(Icons.remove, size: 20, color: AppColors.muted),
+          onPressed: _weeklyKm > 10
+              ? () => setState(() => _weeklyKm = (_weeklyKm - 5).clamp(10, 150))
+              : null,
+        ),
+        Expanded(
+          child: Slider(
+            value: _weeklyKm,
+            min: 10, max: 150, divisions: 28,
+            onChanged: (v) => setState(() => _weeklyKm = v),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.add, size: 20, color: AppColors.muted),
+          onPressed: _weeklyKm < 150
+              ? () => setState(() => _weeklyKm = (_weeklyKm + 5).clamp(10, 150))
+              : null,
+        ),
+      ]),
+      const SizedBox(height: 16),
+      _SectionLabel('Eerdere ultra-afstand'),
+      _ChipRow(
+        values: ['none', 'twenty_five_km', 'fifty_km', 'hundred_km_plus'],
+        labels: ['Geen', '25 km', '50 km', '100 km+'],
+        selected: _previousUltra,
+        onSelect: (v) => setState(() => _previousUltra = v),
       ),
     ],
   );
 
-  Widget _stepRaceGoal() => Column(
+  // ── Step 3: Performance (optional) ──────────────────────────────────────────
+
+  Widget _stepPerformance() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      _StepHeader(emoji: '🏔️', title: 'Race & doelstelling',
-          subtitle: 'Waarvoor train je?'),
-      _SectionLabel('Doel'),
-      ...[
-        ('five_km',       '5 km',            '🏃'),
-        ('ten_km',        '10 km',           '🏃'),
-        ('half_marathon', 'Halve marathon',  '🥈'),
-        ('marathon',      'Marathon',        '🥇'),
-        ('fifty_km',      '50 km ultra',     '🏔️'),
-        ('hundred_km',    '100 km ultra',    '🌋'),
-      ].map((g) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: _RadioTile(
-          label: g.$2,
-          emoji: g.$3,
-          value: g.$1,
-          groupValue: _raceGoal,
-          onChanged: (v) => setState(() => _raceGoal = v),
+      _StepHeader(emoji: '🏅', title: 'Prestaties',
+          subtitle: 'Optioneel — sla over als je geen persoonlijke records hebt'),
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceHigh,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.outline),
         ),
-      )),
-      const SizedBox(height: 16),
+        child: const Row(children: [
+          Icon(Icons.info_outline, size: 16, color: AppColors.muted),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Deze informatie helpt ons je trainingsintensite nauwkeuriger te berekenen.',
+              style: TextStyle(fontSize: 12, color: AppColors.muted, height: 1.4),
+            ),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 20),
       TextField(
+        controller: _time10kCtrl,
         style: const TextStyle(color: AppColors.onBg),
         decoration: const InputDecoration(
-          labelText: 'Racedatum',
-          hintText: 'JJJJ-MM-DD',
-          prefixIcon: Icon(Icons.calendar_today_outlined, size: 18),
+          labelText: '10 km tijd (optioneel)',
+          hintText: 'hh:mm:ss',
+          prefixIcon: Icon(Icons.timer_outlined, size: 18),
         ),
-        onChanged: (v) => setState(() => _raceDate = v),
       ),
-      const SizedBox(height: 16),
-      _SectionLabel('Ondergrond'),
-      _ChipRow(
-        values: ['road', 'trail', 'mixed'],
-        labels: ['Weg', 'Trail', 'Mix'],
-        selected: _terrain,
-        onSelect: (v) => setState(() => _terrain = v),
+      const SizedBox(height: 14),
+      TextField(
+        controller: _timeHalfCtrl,
+        style: const TextStyle(color: AppColors.onBg),
+        decoration: const InputDecoration(
+          labelText: 'Halve marathon tijd (optioneel)',
+          hintText: 'hh:mm:ss',
+          prefixIcon: Icon(Icons.timer_outlined, size: 18),
+        ),
+      ),
+      const SizedBox(height: 14),
+      TextField(
+        controller: _timeMarathonCtrl,
+        style: const TextStyle(color: AppColors.onBg),
+        decoration: const InputDecoration(
+          labelText: 'Marathon tijd (optioneel)',
+          hintText: 'hh:mm:ss',
+          prefixIcon: Icon(Icons.timer_outlined, size: 18),
+        ),
       ),
     ],
   );
 
-  Widget _stepTrainingDays() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _StepHeader(emoji: '📅', title: 'Trainingsdagen',
-          subtitle: 'Op welke dagen wil je trainen?'),
-      const SizedBox(height: 8),
-      Row(
-        children: List.generate(7, (i) {
-          const labels = ['Ma','Di','Wo','Do','Vr','Za','Zo'];
-          final selected = _trainingDays.contains(i);
-          return Expanded(child: GestureDetector(
-            onTap: () => setState(() =>
-                selected ? _trainingDays.remove(i) : _trainingDays.add(i)),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              padding: const EdgeInsets.symmetric(vertical: 14),
+  // ── Step 4: Race goal ────────────────────────────────────────────────────────
+
+  Widget _stepRaceGoal() {
+    final raceDateStr = _raceDate == null
+        ? null
+        : '${_raceDate!.day.toString().padLeft(2, '0')}-'
+          '${_raceDate!.month.toString().padLeft(2, '0')}-${_raceDate!.year}';
+    final weeksUntil = _raceDate == null
+        ? null
+        : _raceDate!.difference(DateTime.now()).inDays ~/ 7;
+    final peakKm = _weeklyKm * 1.4;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _StepHeader(emoji: '🏔️', title: 'Race & doelstelling',
+            subtitle: 'Waarvoor train je?'),
+
+        // Category: Eerste stappen
+        _SectionLabel('Eerste stappen'),
+        _ChipRow(
+          values: ['five_km', 'ten_km'],
+          labels: ['5 km', '10 km'],
+          selected: _raceGoal,
+          onSelect: (v) => setState(() { _raceGoal = v; _raceGoalCustomKm = null; }),
+        ),
+        const SizedBox(height: 16),
+
+        // Category: Marathon
+        _SectionLabel('Marathon'),
+        _ChipRow(
+          values: ['half_marathon', 'marathon', 'sub3_marathon', 'sub4_marathon'],
+          labels: ['Halve marathon', 'Marathon', 'Sub-3 marathon', 'Sub-4 marathon'],
+          selected: _raceGoal,
+          onSelect: (v) => setState(() { _raceGoal = v; _raceGoalCustomKm = null; }),
+        ),
+        const SizedBox(height: 16),
+
+        // Category: Ultra
+        _SectionLabel('Ultra'),
+        _ChipRow(
+          values: ['fifty_km', 'hundred_km'],
+          labels: ['50 km', '100 km'],
+          selected: _raceGoal,
+          onSelect: (v) => setState(() { _raceGoal = v; _raceGoalCustomKm = null; }),
+        ),
+        const SizedBox(height: 16),
+
+        // Category: Custom
+        _SectionLabel('Eigen afstand'),
+        GestureDetector(
+          onTap: () => setState(() {
+            _raceGoal = 'custom';
+            _raceGoalCustomKm ??= 42.195;
+          }),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: _raceGoal == 'custom'
+                  ? AppColors.brand.withOpacity(.15)
+                  : AppColors.surfaceHigh,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: _raceGoal == 'custom' ? AppColors.brand : AppColors.outline,
+                width: _raceGoal == 'custom' ? 2 : 1,
+              ),
+            ),
+            child: Text('Eigen afstand invoeren',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: _raceGoal == 'custom' ? AppColors.brand : AppColors.onSurface,
+                  fontWeight: _raceGoal == 'custom' ? FontWeight.w700 : FontWeight.w400,
+                )),
+          ),
+        ),
+        if (_raceGoal == 'custom') ...[
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(
+              child: Slider(
+                value: _raceGoalCustomKm ?? 42.0,
+                min: 5, max: 250, divisions: 49,
+                onChanged: (v) => setState(() => _raceGoalCustomKm = v),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: selected ? AppColors.brand.withOpacity(.2) : AppColors.surfaceHigh,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: selected ? AppColors.brand : AppColors.outline,
-                  width: selected ? 2 : 1,
+                color: AppColors.brand.withOpacity(.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text('${(_raceGoalCustomKm ?? 42).round()} km',
+                  style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w800)),
+            ),
+          ]),
+        ],
+        const SizedBox(height: 20),
+
+        // Race date
+        _SectionLabel('Racedatum'),
+        GestureDetector(
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: _raceDate ?? DateTime.now().add(const Duration(days: 90)),
+              firstDate: DateTime.now().add(const Duration(days: 14)),
+              lastDate: DateTime.now().add(const Duration(days: 730)),
+              builder: (ctx, child) => Theme(
+                data: Theme.of(ctx).copyWith(
+                  colorScheme: Theme.of(ctx).colorScheme.copyWith(
+                    primary: AppColors.brand,
+                    surface: AppColors.surfaceHigher,
+                  ),
+                ),
+                child: child!,
+              ),
+            );
+            if (picked != null) setState(() => _raceDate = picked);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceHigh,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _raceDate != null ? AppColors.brand : AppColors.outline,
+                width: _raceDate != null ? 2 : 1,
+              ),
+            ),
+            child: Row(children: [
+              Icon(Icons.calendar_today_outlined, size: 18,
+                  color: _raceDate != null ? AppColors.brand : AppColors.muted),
+              const SizedBox(width: 10),
+              Text(
+                raceDateStr ?? 'Kies een datum',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: _raceDate != null ? AppColors.onBg : AppColors.muted,
                 ),
               ),
-              child: Center(child: Text(labels[i],
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: selected ? AppColors.brand : AppColors.muted,
-                    fontWeight: FontWeight.w700,
-                  ))),
-            ),
-          ));
-        }),
-      ),
-      const SizedBox(height: 24),
-      _SectionLabel('Lange duurloop op'),
-      DropdownButtonFormField<int>(
-        value: _longRunDay,
-        dropdownColor: AppColors.surfaceHigher,
-        style: const TextStyle(color: AppColors.onBg, fontSize: 14),
-        decoration: const InputDecoration(
-          prefixIcon: Icon(Icons.flag_outlined, size: 18),
+            ]),
+          ),
         ),
-        items: _trainingDays.map((d) {
-          const labels = ['Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag','Zondag'];
-          return DropdownMenuItem(value: d, child: Text(labels[d]));
-        }).toList(),
-        onChanged: (v) => setState(() => _longRunDay = v!),
-      ),
-    ],
-  );
+
+        if (_raceDate != null && weeksUntil != null) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.brand.withOpacity(.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.brand.withOpacity(.25)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.preview_outlined, size: 16, color: AppColors.brand),
+              const SizedBox(width: 8),
+              Expanded(child: Text(
+                'Preview: $weeksUntil weken schema, '
+                'piekkilometrage ~${peakKm.round()} km/week',
+                style: const TextStyle(
+                  fontSize: 12, color: AppColors.brand, height: 1.4),
+              )),
+            ]),
+          ),
+        ],
+
+        const SizedBox(height: 20),
+        _SectionLabel('Ondergrond'),
+        _ChipRow(
+          values: ['road', 'mixed', 'trail'],
+          labels: ['Weg', 'Mixed', 'Trail'],
+          selected: _terrain,
+          onSelect: (v) => setState(() => _terrain = v),
+        ),
+      ],
+    );
+  }
+
+  // ── Step 5: Training days ────────────────────────────────────────────────────
+
+  Widget _stepTrainingDays() {
+    const dayLabels      = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
+    const dayLabelsFull  = ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag', 'Zondag'];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _StepHeader(emoji: '📅', title: 'Trainingsdagen',
+            subtitle: 'Op welke dagen wil je trainen? (min. 2 dagen)'),
+        Row(
+          children: List.generate(7, (i) {
+            final selected = _trainingDays.contains(i);
+            return Expanded(child: GestureDetector(
+              onTap: () => setState(() {
+                if (selected) {
+                  _trainingDays.remove(i);
+                  _dayDurations.remove(i);
+                  if (_longRunDay == i) _longRunDay = null;
+                } else {
+                  _trainingDays.add(i);
+                  _dayDurations[i] = 60;
+                }
+              }),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.brand.withOpacity(.2) : AppColors.surfaceHigh,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: selected ? AppColors.brand : AppColors.outline,
+                    width: selected ? 2 : 1,
+                  ),
+                ),
+                child: Center(child: Text(dayLabels[i],
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: selected ? AppColors.brand : AppColors.muted,
+                      fontWeight: FontWeight.w700,
+                    ))),
+              ),
+            ));
+          }),
+        ),
+
+        if (_trainingDays.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          _SectionLabel('Max. duur per dag'),
+          ...(_trainingDays.toList()..sort()).map((d) {
+            final mins = _dayDurations[d] ?? 60;
+            final isLong = d == _longRunDay;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Text(dayLabelsFull[d],
+                        style: TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w600,
+                          color: isLong ? AppColors.longRun : AppColors.onBg,
+                        )),
+                    if (isLong) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.longRun.withOpacity(.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text('Lange duurloop',
+                            style: TextStyle(fontSize: 10, color: AppColors.longRun,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                    ],
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceHigh,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text('${mins ~/ 60 > 0 ? '${mins ~/ 60}u ' : ''}${mins % 60 > 0 || mins < 60 ? '${mins % 60}m' : ''}',
+                          style: const TextStyle(fontSize: 12, color: AppColors.onSurface,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                  ]),
+                  Slider(
+                    value: mins.toDouble(),
+                    min: 30, max: 240, divisions: 14,
+                    onChanged: (v) => setState(() => _dayDurations[d] = v.round()),
+                  ),
+                ],
+              ),
+            );
+          }),
+
+          const SizedBox(height: 8),
+          _SectionLabel('Welke dag is je lange duurloop?'),
+          DropdownButtonFormField<int>(
+            value: _trainingDays.contains(_longRunDay) ? _longRunDay : null,
+            dropdownColor: AppColors.surfaceHigher,
+            style: const TextStyle(color: AppColors.onBg, fontSize: 14),
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.flag_outlined, size: 18),
+              hintText: 'Kies een dag',
+            ),
+            items: (_trainingDays.toList()..sort()).map((d) =>
+              DropdownMenuItem(
+                value: d,
+                child: Text(dayLabelsFull[d]),
+              ),
+            ).toList(),
+            onChanged: (v) => setState(() {
+              _longRunDay = v;
+              if (v != null) _dayDurations[v] = 180;
+            }),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ── Step 6: Heart rate (optional) ───────────────────────────────────────────
+
+  Widget _stepHeartrate() {
+    final age    = int.tryParse(_ageCtrl.text) ?? 30;
+    final maxHr  = _hrAuto ? (220 - age) : (int.tryParse(_maxHrCtrl.text) ?? 190);
+    final restHr = int.tryParse(_restHrCtrl.text) ?? 55;
+    final hrr    = maxHr - restHr;
+
+    int kv(double f) => (restHr + hrr * f).round();
+
+    final zones = [
+      (name: 'Z1 Herstel',            color: const Color(0xFF7bc67e), low: kv(0.50), high: kv(0.60)),
+      (name: 'Z2 Aerobe basis',       color: const Color(0xFF5a7a52), low: kv(0.60), high: kv(0.70)),
+      (name: 'Z3 Aerobe drempel',     color: const Color(0xFFc49a5a), low: kv(0.70), high: kv(0.80)),
+      (name: 'Z4 Anaerobe drempel',   color: const Color(0xFFb85c3a), low: kv(0.80), high: kv(0.90)),
+      (name: 'Z5 VO₂max',             color: const Color(0xFFc0392b), low: kv(0.90), high: maxHr),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _StepHeader(emoji: '❤️', title: 'Hartslagzones',
+            subtitle: 'Optioneel — helpt ons je trainingsintensiteit te calibreren'),
+
+        // Auto/manual toggle
+        _MobilityOption(
+          label: 'Automatisch berekenen (220 − leeftijd)',
+          subtitle: 'Max HR = ${220 - age} bpm',
+          selected: _hrAuto,
+          onTap: () => setState(() => _hrAuto = true),
+        ),
+        const SizedBox(height: 8),
+        _MobilityOption(
+          label: 'Zelf invoeren',
+          subtitle: 'Vul je gemeten max hartslag in',
+          selected: !_hrAuto,
+          onTap: () => setState(() => _hrAuto = false),
+        ),
+
+        if (!_hrAuto) ...[
+          const SizedBox(height: 16),
+          TextField(
+            controller: _maxHrCtrl,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(color: AppColors.onBg),
+            decoration: const InputDecoration(
+              labelText: 'Max hartslag (bpm)',
+              hintText: '190',
+              prefixIcon: Icon(Icons.favorite_outline, size: 18),
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
+
+        const SizedBox(height: 14),
+        TextField(
+          controller: _restHrCtrl,
+          keyboardType: TextInputType.number,
+          style: const TextStyle(color: AppColors.onBg),
+          decoration: const InputDecoration(
+            labelText: 'Rusthartslag (bpm)',
+            hintText: '55',
+            prefixIcon: Icon(Icons.bedtime_outlined, size: 18),
+          ),
+          onChanged: (_) => setState(() {}),
+        ),
+
+        const SizedBox(height: 20),
+        _SectionLabel('Jouw zones'),
+        ...zones.map((z) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(children: [
+            Container(
+              width: 12, height: 12,
+              decoration: BoxDecoration(color: z.color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Text(z.name,
+                style: const TextStyle(fontSize: 13, color: AppColors.onSurface))),
+            Text('${z.low}–${z.high} bpm',
+                style: const TextStyle(
+                  fontSize: 13, color: AppColors.muted,
+                  fontWeight: FontWeight.w600, fontFamily: 'monospace')),
+          ]),
+        )),
+      ],
+    );
+  }
+
+  // ── Step 7: Health ───────────────────────────────────────────────────────────
 
   Widget _stepHealth() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       _StepHeader(emoji: '💤', title: 'Gezondheid & herstel',
           subtitle: 'Dit helpt ons je belastbaarheid goed in te schatten'),
-      _SectionLabel('Gemiddeld slaap per nacht'),
+
+      _SectionLabel('Gemiddelde slaap per nacht'),
       _ChipRow(
-        values: ['less_than_six','six_to_seven','seven_to_eight','more_than_eight'],
-        labels: ['< 6 uur','6–7 uur','7–8 uur','> 8 uur'],
+        values: ['less_than_six', 'six_to_seven', 'seven_to_eight', 'more_than_eight'],
+        labels: ['< 6 uur', '6-7 uur', '7-8 uur', '> 8 uur'],
         selected: _sleep,
         onSelect: (v) => setState(() => _sleep = v),
       ),
-      const SizedBox(height: 28),
+
+      const SizedBox(height: 24),
+      TextField(
+        controller: _complaintsCtrl,
+        maxLines: 3,
+        style: const TextStyle(color: AppColors.onBg),
+        decoration: const InputDecoration(
+          labelText: 'Huidige klachten of pijnpunten (optioneel)',
+          hintText: 'Beschrijf eventuele pijn of ongemakken...',
+          prefixIcon: Icon(Icons.notes_outlined, size: 18),
+        ),
+      ),
+
+      const SizedBox(height: 20),
+      _SectionLabel('Eerdere blessures (optioneel)'),
+      Wrap(
+        spacing: 8, runSpacing: 8,
+        children: [
+          'Knie', 'Achilles', 'Scheenbeen', 'Heup',
+          'Hamstring', 'Kuit', 'Voet', 'Enkel', 'Onderrug',
+        ].map((loc) {
+          final selected = _previousInjuries.contains(loc);
+          return FilterChip(
+            label: Text(loc),
+            selected: selected,
+            onSelected: (_) => setState(() => selected
+                ? _previousInjuries.remove(loc)
+                : _previousInjuries.add(loc)),
+          );
+        }).toList(),
+      ),
+
+      const SizedBox(height: 24),
       Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -376,10 +850,10 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppColors.easy.withOpacity(.3)),
         ),
-        child: Row(children: [
-          const Text('✅', style: TextStyle(fontSize: 20)),
-          const SizedBox(width: 12),
-          const Expanded(
+        child: const Row(children: [
+          Text('✅', style: TextStyle(fontSize: 20)),
+          SizedBox(width: 12),
+          Expanded(
             child: Text(
               'Je persoonlijke trainingsschema wordt direct gegenereerd op basis van je profiel.',
               style: TextStyle(fontSize: 13, color: AppColors.onSurface, height: 1.4),
@@ -389,6 +863,61 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
       ),
     ],
   );
+}
+
+// ── Mobility option (single-select row) ───────────────────────────────────────
+
+class _MobilityOption extends StatelessWidget {
+  final String label;
+  final String? subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+  const _MobilityOption({
+    required this.label,
+    this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.brand.withOpacity(.12) : AppColors.surfaceHigh,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AppColors.brand : AppColors.outline,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(children: [
+          Icon(
+            selected ? Icons.radio_button_checked : Icons.radio_button_off,
+            size: 20,
+            color: selected ? AppColors.brand : AppColors.muted,
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w600,
+                    color: selected ? AppColors.brand : AppColors.onBg,
+                  )),
+              if (subtitle != null)
+                Text(subtitle!,
+                    style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+            ],
+          )),
+        ]),
+      ),
+    );
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -414,7 +943,8 @@ class _StepHeader extends StatelessWidget {
         ),
         const SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 20)),
+          Text(title,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 20)),
           const SizedBox(height: 4),
           Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
         ])),
@@ -440,10 +970,14 @@ class _SectionLabel extends StatelessWidget {
 class _ChipRow extends StatelessWidget {
   final List<String> values;
   final List<String> labels;
-  final String selected;
+  final String? selected;
   final void Function(String) onSelect;
-  const _ChipRow({required this.values, required this.labels,
-      required this.selected, required this.onSelect});
+  const _ChipRow({
+    required this.values,
+    required this.labels,
+    required this.selected,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -473,46 +1007,6 @@ class _ChipRow extends StatelessWidget {
           ),
         );
       }),
-    );
-  }
-}
-
-class _RadioTile extends StatelessWidget {
-  final String label;
-  final String emoji;
-  final String value;
-  final String groupValue;
-  final void Function(String) onChanged;
-  const _RadioTile({required this.label, required this.emoji,
-      required this.value, required this.groupValue, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final selected = value == groupValue;
-    return GestureDetector(
-      onTap: () => onChanged(value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.brand.withOpacity(.12) : AppColors.surfaceHigh,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? AppColors.brand : AppColors.outline,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Row(children: [
-          Text(emoji, style: const TextStyle(fontSize: 20)),
-          const SizedBox(width: 12),
-          Expanded(child: Text(label,
-              style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w600,
-                color: selected ? AppColors.brand : AppColors.onBg))),
-          if (selected)
-            const Icon(Icons.check_circle, size: 18, color: AppColors.brand),
-        ]),
-      ),
     );
   }
 }

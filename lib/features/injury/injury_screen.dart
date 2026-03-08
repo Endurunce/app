@@ -192,6 +192,8 @@ const _locations = [
   ('foot',       '🦶 Voet'),
   ('ankle',      '🦶 Enkel'),
   ('lower_back', '🔙 Onderrug'),
+  ('shoulder',   '💪 Schouder'),
+  ('it_band',    '🦵 IT-band'),
 ];
 
 class _ReportInjurySheet extends ConsumerStatefulWidget {
@@ -203,9 +205,12 @@ class _ReportInjurySheet extends ConsumerStatefulWidget {
 
 class _ReportInjurySheetState extends ConsumerState<_ReportInjurySheet> {
   final Set<String> _selectedLocations = {};
-  int _severity = 5;
-  bool _canWalk = true;
-  bool _canRun  = false;
+  int _severity   = 5;
+  String? _side;          // 'links', 'rechts', 'beide'
+  String? _painType;      // 'scherp', 'bonkend', 'stijf', 'brandend', 'trekkerig'
+  String? _whenPain;      // 'alleen bij bewegen', 'constant', 'na inspanning', 'bij druk'
+  String? _duration;      // '< 1 dag', '1-3 dagen', '3-7 dagen', '> 1 week'
+  String? _mobility;      // 'full', 'walk_only', 'limited'
   final _descCtrl = TextEditingController();
   bool _submitting = false;
 
@@ -221,9 +226,23 @@ class _ReportInjurySheetState extends ConsumerState<_ReportInjurySheet> {
           ? AppColors.warning
           : AppColors.easy;
 
+  bool get _canWalk => _mobility != 'limited';
+  bool get _canRun  => _mobility == 'full';
+
+  void _buildAutoDescription() {
+    final parts = <String>[];
+    if (_side != null)     parts.add('Kant: $_side');
+    if (_painType != null) parts.add('Pijntype: $_painType');
+    if (_whenPain != null) parts.add('Wanneer: $_whenPain');
+    if (_duration != null) parts.add('Duur: $_duration');
+    _descCtrl.text = parts.join(' · ');
+  }
+
   Future<void> _submit() async {
-    if (_selectedLocations.isEmpty) return;
+    if (_selectedLocations.isEmpty || _mobility == null) return;
     setState(() => _submitting = true);
+
+    _buildAutoDescription();
 
     final msg = await ref.read(injuryProvider.notifier).report(
       locations:   _selectedLocations.toList(),
@@ -245,8 +264,8 @@ class _ReportInjurySheetState extends ConsumerState<_ReportInjurySheet> {
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
       initialChildSize: 0.92,
-      maxChildSize: 0.95,
-      minChildSize: 0.5,
+      maxChildSize:     0.95,
+      minChildSize:     0.5,
       expand: false,
       builder: (ctx, scrollCtrl) {
         return Padding(
@@ -272,10 +291,30 @@ class _ReportInjurySheetState extends ConsumerState<_ReportInjurySheet> {
                   style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: 24),
 
-              // Location chips
-              Text('LOCATIE',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5)),
-              const SizedBox(height: 10),
+              // ── Mobility ──
+              _SheetSectionLabel('Mobiliteit'),
+              _MobilityOption(
+                label: 'Volledig lopen en hardlopen',
+                selected: _mobility == 'full',
+                onTap: () => setState(() => _mobility = 'full'),
+              ),
+              const SizedBox(height: 8),
+              _MobilityOption(
+                label: 'Alleen wandelen, niet hardlopen',
+                selected: _mobility == 'walk_only',
+                onTap: () => setState(() => _mobility = 'walk_only'),
+              ),
+              const SizedBox(height: 8),
+              _MobilityOption(
+                label: 'Moeite met lopen',
+                selected: _mobility == 'limited',
+                onTap: () => setState(() => _mobility = 'limited'),
+              ),
+
+              const SizedBox(height: 24),
+
+              // ── Location chips ──
+              _SheetSectionLabel('Locatie'),
               Wrap(
                 spacing: 8, runSpacing: 8,
                 children: _locations.map((loc) {
@@ -290,10 +329,23 @@ class _ReportInjurySheetState extends ConsumerState<_ReportInjurySheet> {
                 }).toList(),
               ),
 
+              // ── Side selection (shown after location selected) ──
+              if (_selectedLocations.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _SheetSectionLabel('Kant'),
+                _ChipRowSingle(
+                  values: ['links', 'rechts', 'beide'],
+                  labels: ['Links', 'Rechts', 'Beide'],
+                  selected: _side,
+                  onSelect: (v) => setState(() => _side = v),
+                ),
+              ],
+
               const SizedBox(height: 24),
+
+              // ── Severity ──
               Row(children: [
-                Text('ERNST',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5)),
+                _SheetSectionLabel('Ernst'),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -319,22 +371,52 @@ class _ReportInjurySheetState extends ConsumerState<_ReportInjurySheet> {
                 ),
               ),
 
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(child: _CheckOption(
-                  label: 'Kan lopen',
-                  value: _canWalk,
-                  onChanged: (v) => setState(() => _canWalk = v),
-                )),
-                const SizedBox(width: 10),
-                Expanded(child: _CheckOption(
-                  label: 'Kan hardlopen',
-                  value: _canRun,
-                  onChanged: (v) => setState(() => _canRun = v),
-                )),
-              ]),
+              const SizedBox(height: 16),
 
-              const SizedBox(height: 14),
+              // ── Pain type ──
+              _SheetSectionLabel('Soort pijn'),
+              _ChipRowSingle(
+                values: ['scherp', 'bonkend', 'stijf', 'brandend', 'trekkerig'],
+                labels: ['Scherp', 'Bonkend', 'Stijf', 'Brandend', 'Trekkerig'],
+                selected: _painType,
+                onSelect: (v) => setState(() => _painType = v),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── When pain occurs ──
+              _SheetSectionLabel('Wanneer treedt pijn op?'),
+              _ChipRowSingle(
+                values: [
+                  'alleen bij bewegen',
+                  'constant',
+                  'na inspanning',
+                  'bij druk/aanraking',
+                ],
+                labels: [
+                  'Alleen bij bewegen',
+                  'Constant',
+                  'Na inspanning',
+                  'Bij druk/aanraking',
+                ],
+                selected: _whenPain,
+                onSelect: (v) => setState(() => _whenPain = v),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── Duration ──
+              _SheetSectionLabel('Hoe lang al?'),
+              _ChipRowSingle(
+                values: ['< 1 dag', '1-3 dagen', '3-7 dagen', '> 1 week'],
+                labels: ['< 1 dag', '1-3 dagen', '3-7 dagen', '> 1 week'],
+                selected: _duration,
+                onSelect: (v) => setState(() => _duration = v),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── Description ──
               TextField(
                 controller: _descCtrl,
                 maxLines: 3,
@@ -349,7 +431,9 @@ class _ReportInjurySheetState extends ConsumerState<_ReportInjurySheet> {
               const SizedBox(height: 24),
               FilledButton.icon(
                 style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-                onPressed: (_submitting || _selectedLocations.isEmpty) ? null : _submit,
+                onPressed: (_submitting || _selectedLocations.isEmpty || _mobility == null)
+                    ? null
+                    : _submit,
                 icon: _submitting
                     ? const SizedBox(height: 18, width: 18,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
@@ -364,39 +448,99 @@ class _ReportInjurySheetState extends ConsumerState<_ReportInjurySheet> {
   }
 }
 
-class _CheckOption extends StatelessWidget {
+// ── Sheet helpers ──────────────────────────────────────────────────────────────
+
+class _SheetSectionLabel extends StatelessWidget {
+  final String text;
+  const _SheetSectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(text.toUpperCase(),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5)),
+    );
+  }
+}
+
+class _MobilityOption extends StatelessWidget {
   final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  const _CheckOption({required this.label, required this.value, required this.onChanged});
+  final bool selected;
+  final VoidCallback onTap;
+  const _MobilityOption({required this.label, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => onChanged(!value),
+      onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: value ? AppColors.easy.withOpacity(.15) : AppColors.surfaceHigh,
+          color: selected ? AppColors.easy.withOpacity(.12) : AppColors.surfaceHigh,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: value ? AppColors.easy : AppColors.outline,
+            color: selected ? AppColors.easy : AppColors.outline,
+            width: selected ? 2 : 1,
           ),
         ),
         child: Row(children: [
-          Icon(value ? Icons.check_box : Icons.check_box_outline_blank,
-              size: 18,
-              color: value ? AppColors.easy : AppColors.muted),
-          const SizedBox(width: 8),
-          Text(label,
+          Icon(
+            selected ? Icons.radio_button_checked : Icons.radio_button_off,
+            size: 18,
+            color: selected ? AppColors.easy : AppColors.muted,
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(label,
               style: TextStyle(
-                fontSize: 13,
-                color: value ? AppColors.easy : AppColors.onSurface,
-                fontWeight: FontWeight.w500,
-              )),
+                fontSize: 13, fontWeight: FontWeight.w500,
+                color: selected ? AppColors.easy : AppColors.onSurface,
+              ))),
         ]),
       ),
+    );
+  }
+}
+
+class _ChipRowSingle extends StatelessWidget {
+  final List<String> values;
+  final List<String> labels;
+  final String? selected;
+  final void Function(String) onSelect;
+  const _ChipRowSingle({
+    required this.values, required this.labels,
+    required this.selected, required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8, runSpacing: 8,
+      children: List.generate(values.length, (i) {
+        final active = selected == values[i];
+        return GestureDetector(
+          onTap: () => onSelect(values[i]),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: active ? AppColors.brand.withOpacity(.15) : AppColors.surfaceHigh,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: active ? AppColors.brand : AppColors.outline,
+                width: active ? 2 : 1,
+              ),
+            ),
+            child: Text(labels[i],
+                style: TextStyle(
+                  fontSize: 13,
+                  color: active ? AppColors.brand : AppColors.onSurface,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w400,
+                )),
+          ),
+        );
+      }),
     );
   }
 }

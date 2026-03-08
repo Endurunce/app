@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/endurance_logo.dart';
 import 'auth_provider.dart';
-import 'login_screen.dart' show _ErrorBanner;
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -120,6 +119,28 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  final String message;
+  const _ErrorBanner(this.message);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.errorDim,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.error.withOpacity(.4)),
+      ),
+      child: Row(children: [
+        const Icon(Icons.error_outline, color: AppColors.error, size: 16),
+        const SizedBox(width: 8),
+        Expanded(child: Text(message, style: const TextStyle(color: AppColors.error, fontSize: 13))),
+      ]),
     );
   }
 }

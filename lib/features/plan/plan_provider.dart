@@ -10,6 +10,7 @@ class Day {
   final double? adjustedKm;
   final bool completed;
   final String? notes;
+  final String? stravaActivityId;
 
   const Day({
     required this.weekday,
@@ -18,17 +19,19 @@ class Day {
     this.adjustedKm,
     this.completed = false,
     this.notes,
+    this.stravaActivityId,
   });
 
   double get effectiveKm => adjustedKm ?? targetKm;
 
   factory Day.fromJson(Map<String, dynamic> j) => Day(
-    weekday:     j['weekday'] as int,
-    sessionType: j['session_type'] as String,
-    targetKm:    (j['target_km'] as num).toDouble(),
-    adjustedKm:  (j['adjusted_km'] as num?)?.toDouble(),
-    completed:   j['completed'] as bool? ?? false,
-    notes:       j['notes'] as String?,
+    weekday:          j['weekday'] as int,
+    sessionType:      j['session_type'] as String,
+    targetKm:         (j['target_km'] as num).toDouble(),
+    adjustedKm:       (j['adjusted_km'] as num?)?.toDouble(),
+    completed:        j['completed'] as bool? ?? false,
+    notes:            j['notes'] as String?,
+    stravaActivityId: j['strava_activity_id'] as String?,
   );
 }
 
@@ -70,12 +73,14 @@ class Week {
 class TrainingPlan {
   final String id;
   final List<Week> weeks;
+  final String raceGoal;
 
-  const TrainingPlan({required this.id, required this.weeks});
+  const TrainingPlan({required this.id, required this.weeks, required this.raceGoal});
 
   factory TrainingPlan.fromJson(Map<String, dynamic> j) => TrainingPlan(
-    id:    j['id'] as String,
-    weeks: (j['weeks'] as List).map((w) => Week.fromJson(w)).toList(),
+    id:       j['id'] as String,
+    weeks:    (j['weeks'] as List).map((w) => Week.fromJson(w)).toList(),
+    raceGoal: (j['race_goal'] ?? 'marathon') as String,
   );
 }
 
@@ -134,6 +139,30 @@ class PlanNotifier extends Notifier<PlanState> {
       },
     );
     await loadActivePlan(); // refresh
+  }
+
+  Future<void> uncompleteDay({
+    required String planId,
+    required int weekNumber,
+    required int weekday,
+  }) async {
+    final client = ref.read(apiClientProvider);
+    await client.post('/api/plans/$planId/weeks/$weekNumber/days/$weekday/uncomplete', {});
+    await loadActivePlan();
+  }
+
+  Future<Map<String, dynamic>?> getSessionAdvice({
+    required String planId,
+    required int weekNumber,
+    required int weekday,
+  }) async {
+    try {
+      final client = ref.read(apiClientProvider);
+      final data = await client.get('/api/plans/$planId/weeks/$weekNumber/days/$weekday/advice');
+      return data as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
   }
 }
 

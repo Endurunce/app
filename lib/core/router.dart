@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,6 +7,9 @@ import '../features/auth/register_screen.dart';
 import '../features/plan/plan_screen.dart';
 import '../features/plan/week_detail_screen.dart';
 import '../features/injury/injury_screen.dart';
+import '../features/coach/coach_screen.dart';
+import '../features/strava/strava_screen.dart';
+import '../features/tips/tips_screen.dart';
 import '../features/profile/intake_screen.dart';
 import '../shared/widgets/main_shell.dart';
 
@@ -53,6 +55,24 @@ final routerProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: '/injuries',
               builder: (_, __) => const InjuryScreen(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/coach',
+              builder: (_, __) => const CoachScreen(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/strava',
+              builder: (_, __) => const StravaScreen(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/tips',
+              builder: (_, __) => const TipsScreen(),
             ),
           ]),
         ],

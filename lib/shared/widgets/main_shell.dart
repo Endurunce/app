@@ -18,14 +18,29 @@ class MainShell extends StatelessWidget {
         ),
         destinations: const [
           NavigationDestination(
-            icon:          Icon(Icons.directions_run_outlined),
-            selectedIcon:  Icon(Icons.directions_run),
-            label:         'Training',
+            icon:         Icon(Icons.directions_run_outlined),
+            selectedIcon: Icon(Icons.directions_run),
+            label:        'Training',
           ),
           NavigationDestination(
-            icon:          Icon(Icons.healing_outlined),
-            selectedIcon:  Icon(Icons.healing),
-            label:         'Blessures',
+            icon:         Icon(Icons.healing_outlined),
+            selectedIcon: Icon(Icons.healing),
+            label:        'Blessures',
+          ),
+          NavigationDestination(
+            icon:         Icon(Icons.chat_bubble_outline),
+            selectedIcon: Icon(Icons.chat_bubble),
+            label:        'Coach',
+          ),
+          NavigationDestination(
+            icon:         Icon(Icons.favorite_border),
+            selectedIcon: Icon(Icons.favorite, color: AppColors.brand),
+            label:        'Strava',
+          ),
+          NavigationDestination(
+            icon:         Icon(Icons.lightbulb_outline),
+            selectedIcon: Icon(Icons.lightbulb),
+            label:        'Tips',
           ),
         ],
       ),
