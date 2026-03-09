@@ -48,9 +48,11 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   String? _terrain;
 
   // Step 5
-  final Set<int> _trainingDays = {};
+  final Set<int> _trainingDays  = {};
   final Map<int, int> _dayDurations = {};
   int? _longRunDay;
+  bool _addStrength = false;
+  final Set<int> _strengthDays  = {};
 
   // Step 6 (optional)
   bool _hrAuto = true;
@@ -220,6 +222,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         'race_date':       _raceDate?.toIso8601String().split('T')[0],
         'terrain':         _terrain ?? 'road',
         'training_days':   _trainingDays.toList()..sort(),
+        'strength_days':   _strengthDays.toList()..sort(),
         'max_duration_per_day': _trainingDays.map((d) => {
           'day': d,
           'max_minutes': _dayDurations[d] ?? 60,
@@ -990,6 +993,103 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
             onChanged: (v) => setState(() {
               _longRunDay = v;
               if (v != null) _dayDurations[v] = 180;
+            }),
+          ),
+        ],
+
+        // ── Krachttraining ──────────────────────────────────────────────────
+        const SizedBox(height: 28),
+        _SectionLabel('Krachttraining'),
+        const SizedBox(height: 4),
+        GestureDetector(
+          onTap: () => setState(() {
+            _addStrength = !_addStrength;
+            if (!_addStrength) _strengthDays.clear();
+          }),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: _addStrength
+                  ? AppColors.brand.withValues(alpha: .12)
+                  : AppColors.surfaceHigh,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _addStrength ? AppColors.brand : AppColors.outline,
+                width: _addStrength ? 2 : 1,
+              ),
+            ),
+            child: Row(children: [
+              Icon(Icons.fitness_center,
+                  size: 20,
+                  color: _addStrength ? AppColors.brand : AppColors.muted),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Krachttraining toevoegen',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: _addStrength ? AppColors.brand : AppColors.onBg,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Krachttraining naast je hardloopschema',
+                      style: TextStyle(fontSize: 12, color: AppColors.muted),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                _addStrength ? Icons.check_circle : Icons.circle_outlined,
+                color: _addStrength ? AppColors.brand : AppColors.muted,
+                size: 22,
+              ),
+            ]),
+          ),
+        ),
+
+        if (_addStrength) ...[
+          const SizedBox(height: 16),
+          const Text(
+            'Op welke dag(en) wil je krachttrainen?',
+            style: TextStyle(fontSize: 13, color: AppColors.onSurface),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: List.generate(7, (i) {
+              final selected = _strengthDays.contains(i);
+              return Expanded(child: GestureDetector(
+                onTap: () => setState(() {
+                  if (selected) _strengthDays.remove(i);
+                  else _strengthDays.add(i);
+                }),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.brand.withValues(alpha: .2)
+                        : AppColors.surfaceHigh,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: selected ? AppColors.brand : AppColors.outline,
+                      width: selected ? 2 : 1,
+                    ),
+                  ),
+                  child: Center(child: Text(dayLabels[i],
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: selected ? AppColors.brand : AppColors.muted,
+                        fontWeight: FontWeight.w700,
+                      ))),
+                ),
+              ));
             }),
           ),
         ],
