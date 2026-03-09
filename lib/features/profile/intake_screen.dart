@@ -166,155 +166,126 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     final FixedExtentScrollController mCtrl = FixedExtentScrollController(initialItem: selM);
     final FixedExtentScrollController sCtrl = FixedExtentScrollController(initialItem: selS);
 
-    await showModalBottomSheet(
+    await showDialog<void>(
       context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(builder: (ctx, setModalState) {
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Tijd invoeren',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.onBg)),
+          content: SizedBox(
+            width: 280,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Handle
-                Container(width: 40, height: 4,
-                  decoration: BoxDecoration(color: AppColors.outline, borderRadius: BorderRadius.circular(2))),
-                const SizedBox(height: 20),
-                // Title row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        onPicked(null);
-                      },
-                      child: const Text('Wissen', style: TextStyle(color: AppColors.muted)),
-                    ),
-                    const Text('Tijd', style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onBg)),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        minimumSize: Size.zero,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        onPicked(Duration(hours: selH, minutes: selM, seconds: selS));
-                      },
-                      child: const Text('Klaar'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
                 // Column headers
-                Row(
-                  children: const [
-                    Expanded(child: Center(child: Text('uur', style: TextStyle(fontSize: 11, color: AppColors.muted, letterSpacing: 1)))),
-                    SizedBox(width: 8),
-                    Expanded(child: Center(child: Text('min', style: TextStyle(fontSize: 11, color: AppColors.muted, letterSpacing: 1)))),
-                    SizedBox(width: 8),
-                    Expanded(child: Center(child: Text('sec', style: TextStyle(fontSize: 11, color: AppColors.muted, letterSpacing: 1)))),
-                  ],
-                ),
-                const SizedBox(height: 4),
+                Row(children: const [
+                  Expanded(child: Center(child: Text('uur', style: TextStyle(fontSize: 11, color: AppColors.muted, letterSpacing: 1, fontWeight: FontWeight.w600)))),
+                  SizedBox(width: 8),
+                  Expanded(child: Center(child: Text('min', style: TextStyle(fontSize: 11, color: AppColors.muted, letterSpacing: 1, fontWeight: FontWeight.w600)))),
+                  SizedBox(width: 8),
+                  Expanded(child: Center(child: Text('sec', style: TextStyle(fontSize: 11, color: AppColors.muted, letterSpacing: 1, fontWeight: FontWeight.w600)))),
+                ]),
+                const SizedBox(height: 8),
                 // Wheels
                 SizedBox(
-                  height: 180,
+                  height: 160,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
                       // Selection highlight
                       Container(
                         height: 44,
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceHigh,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: AppColors.outline),
                         ),
                       ),
-                      Row(
-                        children: [
-                          // Hours (0–9)
-                          Expanded(
-                            child: ListWheelScrollView.useDelegate(
-                              controller: hCtrl,
-                              itemExtent: 44,
-                              diameterRatio: 1.4,
-                              physics: const FixedExtentScrollPhysics(),
-                              onSelectedItemChanged: (i) => setModalState(() => selH = i),
-                              childDelegate: ListWheelChildBuilderDelegate(
-                                childCount: 10,
-                                builder: (_, i) => Center(
-                                  child: Text('$i',
-                                    style: TextStyle(
-                                      fontSize: 22, fontWeight: FontWeight.w600,
-                                      color: selH == i ? AppColors.brand : AppColors.onSurface,
-                                    )),
-                                ),
+                      Row(children: [
+                        // Hours (0–9)
+                        Expanded(
+                          child: ListWheelScrollView.useDelegate(
+                            controller: hCtrl,
+                            itemExtent: 44,
+                            diameterRatio: 1.4,
+                            physics: const FixedExtentScrollPhysics(),
+                            onSelectedItemChanged: (i) => setDialogState(() => selH = i),
+                            childDelegate: ListWheelChildBuilderDelegate(
+                              childCount: 10,
+                              builder: (_, i) => Center(
+                                child: Text('$i', style: TextStyle(
+                                  fontSize: 22, fontWeight: FontWeight.w600,
+                                  color: selH == i ? AppColors.brand : AppColors.onSurface,
+                                )),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          const Text(':', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.onBg)),
-                          const SizedBox(width: 4),
-                          // Minutes (0–59)
-                          Expanded(
-                            child: ListWheelScrollView.useDelegate(
-                              controller: mCtrl,
-                              itemExtent: 44,
-                              diameterRatio: 1.4,
-                              physics: const FixedExtentScrollPhysics(),
-                              onSelectedItemChanged: (i) => setModalState(() => selM = i),
-                              childDelegate: ListWheelChildBuilderDelegate(
-                                childCount: 60,
-                                builder: (_, i) => Center(
-                                  child: Text(i.toString().padLeft(2, '0'),
-                                    style: TextStyle(
-                                      fontSize: 22, fontWeight: FontWeight.w600,
-                                      color: selM == i ? AppColors.brand : AppColors.onSurface,
-                                    )),
-                                ),
+                        ),
+                        const Text(':', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.onBg)),
+                        // Minutes (0–59)
+                        Expanded(
+                          child: ListWheelScrollView.useDelegate(
+                            controller: mCtrl,
+                            itemExtent: 44,
+                            diameterRatio: 1.4,
+                            physics: const FixedExtentScrollPhysics(),
+                            onSelectedItemChanged: (i) => setDialogState(() => selM = i),
+                            childDelegate: ListWheelChildBuilderDelegate(
+                              childCount: 60,
+                              builder: (_, i) => Center(
+                                child: Text(i.toString().padLeft(2, '0'), style: TextStyle(
+                                  fontSize: 22, fontWeight: FontWeight.w600,
+                                  color: selM == i ? AppColors.brand : AppColors.onSurface,
+                                )),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          const Text(':', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.onBg)),
-                          const SizedBox(width: 4),
-                          // Seconds (0–59)
-                          Expanded(
-                            child: ListWheelScrollView.useDelegate(
-                              controller: sCtrl,
-                              itemExtent: 44,
-                              diameterRatio: 1.4,
-                              physics: const FixedExtentScrollPhysics(),
-                              onSelectedItemChanged: (i) => setModalState(() => selS = i),
-                              childDelegate: ListWheelChildBuilderDelegate(
-                                childCount: 60,
-                                builder: (_, i) => Center(
-                                  child: Text(i.toString().padLeft(2, '0'),
-                                    style: TextStyle(
-                                      fontSize: 22, fontWeight: FontWeight.w600,
-                                      color: selS == i ? AppColors.brand : AppColors.onSurface,
-                                    )),
-                                ),
+                        ),
+                        const Text(':', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.onBg)),
+                        // Seconds (0–59)
+                        Expanded(
+                          child: ListWheelScrollView.useDelegate(
+                            controller: sCtrl,
+                            itemExtent: 44,
+                            diameterRatio: 1.4,
+                            physics: const FixedExtentScrollPhysics(),
+                            onSelectedItemChanged: (i) => setDialogState(() => selS = i),
+                            childDelegate: ListWheelChildBuilderDelegate(
+                              childCount: 60,
+                              builder: (_, i) => Center(
+                                child: Text(i.toString().padLeft(2, '0'), style: TextStyle(
+                                  fontSize: 22, fontWeight: FontWeight.w600,
+                                  color: selS == i ? AppColors.brand : AppColors.onSurface,
+                                )),
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ]),
                     ],
                   ),
                 ),
               ],
             ),
-          );
-        });
-      },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () { Navigator.pop(ctx); onPicked(null); },
+              child: const Text('Wissen', style: TextStyle(color: AppColors.muted)),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                onPicked(Duration(hours: selH, minutes: selM, seconds: selS));
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      ),
     );
 
     hCtrl.dispose();
