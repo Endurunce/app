@@ -62,6 +62,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
     if (state.messages.isNotEmpty || state.sending) _scrollToBottom();
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('Coach'),
         actions: [

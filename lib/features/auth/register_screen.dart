@@ -76,6 +76,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final auth = ref.watch(authProvider);
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 320),

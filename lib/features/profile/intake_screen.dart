@@ -414,6 +414,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     final isSkippable = _step == 3 || _step == 6;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('Jouw plan opmaken'),
         leading: (_step1Prefilled ? _step > 2 : _step > 1) || widget.showWelcome
