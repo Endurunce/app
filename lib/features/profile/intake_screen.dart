@@ -33,13 +33,13 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   double  _weeklyKm    = 0;
   String  _previousUltra = 'none';
 
-  // Step 3 (optional)
-  final _time10kCtrl      = TextEditingController();
-  final _timeHalfCtrl     = TextEditingController();
-  final _timeMarathonCtrl = TextEditingController();
+  // Step 3 (optional) — duraties als nullable Duration
+  Duration? _time10k;
+  Duration? _timeHalf;
+  Duration? _timeMarathon;
 
-  // Step 4
-  final _raceTimeGoalCtrl = TextEditingController();
+  // Step 4 — tijdsdoelstelling als Duration
+  Duration? _raceTimeGoal;
 
   // Step 4
   String? _raceGoal;
@@ -119,10 +119,6 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _time10kCtrl.dispose();
-    _timeHalfCtrl.dispose();
-    _timeMarathonCtrl.dispose();
-    _raceTimeGoalCtrl.dispose();
     _maxHrCtrl.dispose();
     _restHrCtrl.dispose();
     for (final c in [..._zoneLoCtrls, ..._zoneHiCtrls]) c.dispose();
@@ -146,6 +142,184 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     return '${_dateOfBirth!.day.toString().padLeft(2, '0')}-'
         '${_dateOfBirth!.month.toString().padLeft(2, '0')}-'
         '${_dateOfBirth!.year}';
+  }
+
+  // ── Duration helpers ──────────────────────────────────────────────────────
+
+  /// Formatteer Duration als "h:mm:ss" of null als leeg.
+  String? _formatDuration(Duration? d) {
+    if (d == null) return null;
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$h:$m:$s';
+  }
+
+  /// Open duration picker bottom sheet, sla resultaat op via [onPicked].
+  Future<void> _pickDuration(Duration? initial, void Function(Duration?) onPicked) async {
+    final init = initial ?? const Duration(hours: 0, minutes: 30);
+    int selH = init.inHours.clamp(0, 9);
+    int selM = init.inMinutes.remainder(60);
+    int selS = init.inSeconds.remainder(60);
+
+    final FixedExtentScrollController hCtrl = FixedExtentScrollController(initialItem: selH);
+    final FixedExtentScrollController mCtrl = FixedExtentScrollController(initialItem: selM);
+    final FixedExtentScrollController sCtrl = FixedExtentScrollController(initialItem: selS);
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setModalState) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle
+                Container(width: 40, height: 4,
+                  decoration: BoxDecoration(color: AppColors.outline, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 20),
+                // Title row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        onPicked(null);
+                      },
+                      child: const Text('Wissen', style: TextStyle(color: AppColors.muted)),
+                    ),
+                    const Text('Tijd', style: TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onBg)),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        minimumSize: Size.zero,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        onPicked(Duration(hours: selH, minutes: selM, seconds: selS));
+                      },
+                      child: const Text('Klaar'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Column headers
+                Row(
+                  children: const [
+                    Expanded(child: Center(child: Text('uur', style: TextStyle(fontSize: 11, color: AppColors.muted, letterSpacing: 1)))),
+                    SizedBox(width: 8),
+                    Expanded(child: Center(child: Text('min', style: TextStyle(fontSize: 11, color: AppColors.muted, letterSpacing: 1)))),
+                    SizedBox(width: 8),
+                    Expanded(child: Center(child: Text('sec', style: TextStyle(fontSize: 11, color: AppColors.muted, letterSpacing: 1)))),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                // Wheels
+                SizedBox(
+                  height: 180,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Selection highlight
+                      Container(
+                        height: 44,
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceHigh,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.outline),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          // Hours (0–9)
+                          Expanded(
+                            child: ListWheelScrollView.useDelegate(
+                              controller: hCtrl,
+                              itemExtent: 44,
+                              diameterRatio: 1.4,
+                              physics: const FixedExtentScrollPhysics(),
+                              onSelectedItemChanged: (i) => setModalState(() => selH = i),
+                              childDelegate: ListWheelChildBuilderDelegate(
+                                childCount: 10,
+                                builder: (_, i) => Center(
+                                  child: Text('$i',
+                                    style: TextStyle(
+                                      fontSize: 22, fontWeight: FontWeight.w600,
+                                      color: selH == i ? AppColors.brand : AppColors.onSurface,
+                                    )),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(':', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.onBg)),
+                          const SizedBox(width: 4),
+                          // Minutes (0–59)
+                          Expanded(
+                            child: ListWheelScrollView.useDelegate(
+                              controller: mCtrl,
+                              itemExtent: 44,
+                              diameterRatio: 1.4,
+                              physics: const FixedExtentScrollPhysics(),
+                              onSelectedItemChanged: (i) => setModalState(() => selM = i),
+                              childDelegate: ListWheelChildBuilderDelegate(
+                                childCount: 60,
+                                builder: (_, i) => Center(
+                                  child: Text(i.toString().padLeft(2, '0'),
+                                    style: TextStyle(
+                                      fontSize: 22, fontWeight: FontWeight.w600,
+                                      color: selM == i ? AppColors.brand : AppColors.onSurface,
+                                    )),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(':', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.onBg)),
+                          const SizedBox(width: 4),
+                          // Seconds (0–59)
+                          Expanded(
+                            child: ListWheelScrollView.useDelegate(
+                              controller: sCtrl,
+                              itemExtent: 44,
+                              diameterRatio: 1.4,
+                              physics: const FixedExtentScrollPhysics(),
+                              onSelectedItemChanged: (i) => setModalState(() => selS = i),
+                              childDelegate: ListWheelChildBuilderDelegate(
+                                childCount: 60,
+                                builder: (_, i) => Center(
+                                  child: Text(i.toString().padLeft(2, '0'),
+                                    style: TextStyle(
+                                      fontSize: 22, fontWeight: FontWeight.w600,
+                                      color: selS == i ? AppColors.brand : AppColors.onSurface,
+                                    )),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        });
+      },
+    );
+
+    hCtrl.dispose();
+    mCtrl.dispose();
+    sCtrl.dispose();
   }
 
   Future<void> _pickDateOfBirth() async {
@@ -211,14 +385,13 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         'running_years':   _runningYears ?? 'two_to_five_years',
         'weekly_km':       _weeklyKm,
         'previous_ultra':  _previousUltra,
-        'time_10k':        _time10kCtrl.text.isNotEmpty ? _time10kCtrl.text : null,
-        'time_half_marathon': _timeHalfCtrl.text.isNotEmpty ? _timeHalfCtrl.text : null,
-        'time_marathon':   _timeMarathonCtrl.text.isNotEmpty ? _timeMarathonCtrl.text : null,
-        'race_goal':       _raceGoalCustomKm != null
+        'time_10k':           _formatDuration(_time10k),
+        'time_half_marathon': _formatDuration(_timeHalf),
+        'time_marathon':      _formatDuration(_timeMarathon),
+        'race_goal':          _raceGoalCustomKm != null
             ? {'custom': {'distance_km': _raceGoalCustomKm}}
             : _raceGoal,
-        'race_time_goal':  _raceTimeGoalCtrl.text.trim().isNotEmpty
-            ? _raceTimeGoalCtrl.text.trim() : null,
+        'race_time_goal':     _formatDuration(_raceTimeGoal),
         'race_date':       _raceDate?.toIso8601String().split('T')[0],
         'terrain':         _terrain ?? 'road',
         'training_days':   _trainingDays.toList()..sort(),
@@ -649,34 +822,22 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         ]),
       ),
       const SizedBox(height: 20),
-      TextField(
-        controller: _time10kCtrl,
-        style: const TextStyle(color: AppColors.onBg),
-        decoration: const InputDecoration(
-          labelText: '10 km tijd (optioneel)',
-          hintText: 'hh:mm:ss',
-          prefixIcon: Icon(Icons.timer_outlined, size: 18),
-        ),
+      _DurationField(
+        label: '10 km tijd (optioneel)',
+        value: _time10k,
+        onTap: () => _pickDuration(_time10k, (d) => setState(() => _time10k = d)),
       ),
       const SizedBox(height: 14),
-      TextField(
-        controller: _timeHalfCtrl,
-        style: const TextStyle(color: AppColors.onBg),
-        decoration: const InputDecoration(
-          labelText: 'Halve marathon tijd (optioneel)',
-          hintText: 'hh:mm:ss',
-          prefixIcon: Icon(Icons.timer_outlined, size: 18),
-        ),
+      _DurationField(
+        label: 'Halve marathon tijd (optioneel)',
+        value: _timeHalf,
+        onTap: () => _pickDuration(_timeHalf, (d) => setState(() => _timeHalf = d)),
       ),
       const SizedBox(height: 14),
-      TextField(
-        controller: _timeMarathonCtrl,
-        style: const TextStyle(color: AppColors.onBg),
-        decoration: const InputDecoration(
-          labelText: 'Marathon tijd (optioneel)',
-          hintText: 'hh:mm:ss',
-          prefixIcon: Icon(Icons.timer_outlined, size: 18),
-        ),
+      _DurationField(
+        label: 'Marathon tijd (optioneel)',
+        value: _timeMarathon,
+        onTap: () => _pickDuration(_timeMarathon, (d) => setState(() => _timeMarathon = d)),
       ),
     ],
   );
@@ -860,14 +1021,10 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         if (_raceGoal != null) ...[
           const SizedBox(height: 20),
           _SectionLabel('Tijdsdoelstelling (optioneel)'),
-          TextField(
-            controller: _raceTimeGoalCtrl,
-            style: const TextStyle(color: AppColors.onBg),
-            decoration: const InputDecoration(
-              labelText: 'Streeftijd',
-              hintText: 'Bijv. 3:45:00 of 45:30',
-              prefixIcon: Icon(Icons.timer_outlined, size: 18),
-            ),
+          _DurationField(
+            label: 'Streeftijd',
+            value: _raceTimeGoal,
+            onTap: () => _pickDuration(_raceTimeGoal, (d) => setState(() => _raceTimeGoal = d)),
           ),
         ],
       ],
@@ -1359,6 +1516,50 @@ class _MobilityOption extends StatelessWidget {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/// Tappable veld dat een Duration toont als h:mm:ss (of placeholder als leeg).
+class _DurationField extends StatelessWidget {
+  final String    label;
+  final Duration? value;
+  final VoidCallback onTap;
+
+  const _DurationField({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  String get _display {
+    if (value == null) return 'Kiezen…';
+    final h = value!.inHours;
+    final m = value!.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = value!.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$h:$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: const Icon(Icons.timer_outlined, size: 18),
+          suffixIcon: value != null
+              ? const Icon(Icons.edit_outlined, size: 16, color: AppColors.muted)
+              : null,
+        ),
+        child: Text(
+          _display,
+          style: TextStyle(
+            color: value == null ? AppColors.muted : AppColors.onBg,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _StepHeader extends StatelessWidget {
   final String emoji;
