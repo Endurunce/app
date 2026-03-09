@@ -79,6 +79,26 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
       ),
       body: Column(
         children: [
+          // Disclaimer banner
+          Container(
+            width: double.infinity,
+            color: AppColors.surfaceHigh,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, size: 14, color: AppColors.muted),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Ik ben een AI-coach, geen medisch professional. Raadpleeg een arts bij twijfel over je gezondheid of blessures.',
+                    style: TextStyle(fontSize: 12, color: AppColors.muted, height: 1.4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           // Messages list
           Expanded(
             child: state.loading && state.messages.isEmpty
