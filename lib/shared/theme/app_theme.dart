@@ -1,96 +1,112 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// ── Brand palette ────────────────────────────────────────────────────────────
+// ── Brand palette — warme, aardse huisstijl ──────────────────────────────────
 class AppColors {
-  // Brand
-  static const brand     = Color(0xFFFF7043); // Primary orange
-  static const brandDeep = Color(0xFFE53935); // Deep red accent
+  // Primair — Mos
+  static const brand     = Color(0xFF5A7A52); // moss — CTA, primaire kleur
+  static const brandDeep = Color(0xFF8AAB7E); // sage — hover, progress
 
-  // Dark backgrounds (layered)
-  static const bg            = Color(0xFF0D0D16); // Canvas
-  static const surface       = Color(0xFF14141E); // Cards, sheets
-  static const surfaceHigh   = Color(0xFF1C1C2A); // Elevated cards
-  static const surfaceHigher = Color(0xFF242436); // Modals, tooltips
+  // Achtergronden (gelaagd)
+  static const bg            = Color(0xFFF7F3EE); // warme beige canvas
+  static const surface       = Color(0xFFFFFCF8); // kaarten, sheets
+  static const surfaceHigh   = Color(0xFFF0EBE3); // invoervelden, chips, rijen
+  static const surfaceHigher = Color(0xFFE8E4DD); // modals, tooltips
 
-  // Borders & dividers
-  static const outline     = Color(0xFF2A2A3C);
-  static const outlineHigh = Color(0xFF3A3A50);
+  // Randen & scheidingen
+  static const outline     = Color(0xFFE2D9CE); // border
+  static const outlineHigh = Color(0xFFC9BFB3); // borderDark
 
-  // Text
-  static const onBg      = Color(0xFFEEEEF8); // Primary text
-  static const onSurface = Color(0xFFCCCCDC); // Secondary text
-  static const muted     = Color(0xFF7070A0); // Placeholder / hints
-  static const disabled  = Color(0xFF44445A); // Disabled state
+  // Tekst
+  static const onBg      = Color(0xFF2D2720); // ink — primaire tekst
+  static const onSurface = Color(0xFF7A6E64); // inkMid — secondaire tekst
+  static const muted     = Color(0xFFA89E93); // inkLight — placeholder, labels
+  static const disabled  = Color(0xFFC9BFB3); // uitgeschakeld
 
-  // Semantic
-  static const success    = Color(0xFF4CAF82);
-  static const successDim = Color(0xFF152B22);
-  static const warning    = Color(0xFFFFC107);
-  static const warningDim = Color(0xFF2C2210);
-  static const error      = Color(0xFFEF5350);
-  static const errorDim   = Color(0xFF2D1414);
+  // Semantisch
+  static const success    = Color(0xFF5A7A52); // moss
+  static const successDim = Color(0xFFDEEBD8); // mossDim
+  static const warning    = Color(0xFFC49A5A); // sand
+  static const warningDim = Color(0xFFF5E8CC); // sandDim
+  static const error      = Color(0xFFB85C3A); // terra
+  static const errorDim   = Color(0xFFF5DDD5); // terraDim
 
-  // Session colors (dark-optimised)
-  static const easy     = Color(0xFF4CAF82);
-  static const easyDim  = Color(0xFF152B22);
-  static const tempo    = Color(0xFFFF7043);
-  static const tempoDim = Color(0xFF2D1A12);
-  static const longRun  = Color(0xFF5BA4D4);
-  static const longDim  = Color(0xFF122030);
-  static const interval = Color(0xFFEF5350);
-  static const intDim   = Color(0xFF2D1414);
-  static const hike     = Color(0xFFB39DDB);
-  static const hikeDim  = Color(0xFF1E1830);
-  static const cross    = Color(0xFFFFCA28);
-  static const crossDim = Color(0xFF2C2410);
-  static const race     = Color(0xFFFFD54F);
-  static const raceDim  = Color(0xFF2C260C);
-  static const rest     = Color(0xFF6E6E9E);
-  static const restDim  = Color(0xFF18182A);
+  // Accenten
+  static const terra     = Color(0xFFB85C3A); // waarschuwing, intensiteit
+  static const terraDim  = Color(0xFFF5DDD5);
+  static const sand      = Color(0xFFC49A5A); // informatief
+  static const sandDim   = Color(0xFFF5E8CC);
+  static const sky       = Color(0xFF4A7FA0); // lange duurloop
+  static const skyDim    = Color(0xFFD6E8F5);
+  static const lavender  = Color(0xFF7A6AAA); // trail / wandel
+  static const lavDim    = Color(0xFFE8E3F5);
+  static const stone     = Color(0xFF9E9488); // rustdag, uitgeschakeld
+  static const stoneDim  = Color(0xFFEDE8E2);
+  static const gold      = Color(0xFFB8862A); // race day, beloning
+  static const goldDim   = Color(0xFFF5E8C0);
+  static const strava    = Color(0xFFFC4C02);
+  static const stravaDim = Color(0xFFFEE8DF);
+
+  // Sessie-kleuren (licht-geoptimaliseerd)
+  static const easy     = Color(0xFF5A7A52); // moss
+  static const easyDim  = Color(0xFFDEEBD8); // mossDim
+  static const tempo    = Color(0xFFB85C3A); // terra
+  static const tempoDim = Color(0xFFF5DDD5); // terraDim
+  static const longRun  = Color(0xFF4A7FA0); // sky
+  static const longDim  = Color(0xFFD6E8F5); // skyDim
+  static const interval = Color(0xFFC0392B); // intens rood
+  static const intDim   = Color(0xFFF5DDD5); // terraDim
+  static const hike     = Color(0xFF7A6AAA); // lavender
+  static const hikeDim  = Color(0xFFE8E3F5); // lavDim
+  static const cross    = Color(0xFFC49A5A); // sand
+  static const crossDim = Color(0xFFF5E8CC); // sandDim
+  static const race     = Color(0xFFB8862A); // gold
+  static const raceDim  = Color(0xFFF5E8C0); // goldDim
+  static const rest     = Color(0xFF9E9488); // stone
+  static const restDim  = Color(0xFFEDE8E2); // stoneDim
 }
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
 class AppTheme {
   static ThemeData get theme {
     const cs = ColorScheme(
-      brightness:          Brightness.dark,
-      primary:             AppColors.brand,
-      onPrimary:           Colors.white,
-      primaryContainer:    Color(0xFF4A1A08),
-      onPrimaryContainer:  Color(0xFFFFB59E),
-      secondary:           AppColors.brandDeep,
-      onSecondary:         Colors.white,
-      secondaryContainer:  Color(0xFF4A0E0E),
-      onSecondaryContainer:Color(0xFFFFB3AF),
-      tertiary:            AppColors.longRun,
-      onTertiary:          Colors.white,
-      tertiaryContainer:   Color(0xFF0E2A3E),
-      onTertiaryContainer: Color(0xFFADD4F0),
-      error:               AppColors.error,
-      onError:             Colors.white,
-      errorContainer:      AppColors.errorDim,
-      onErrorContainer:    Color(0xFFFFB3AE),
-      surface:             AppColors.surface,
-      onSurface:           AppColors.onBg,
-      surfaceContainerHighest: AppColors.surfaceHigher,
-      surfaceContainerHigh:    AppColors.surfaceHigh,
-      surfaceContainer:        AppColors.surface,
-      surfaceContainerLow:     AppColors.bg,
-      surfaceContainerLowest:  AppColors.bg,
-      onSurfaceVariant:    AppColors.onSurface,
-      outline:             AppColors.outline,
-      outlineVariant:      AppColors.outlineHigh,
-      shadow:              Colors.black,
-      scrim:               Colors.black,
-      inverseSurface:      AppColors.onBg,
-      onInverseSurface:    AppColors.bg,
-      inversePrimary:      Color(0xFF8B2500),
+      brightness:               Brightness.light,
+      primary:                  AppColors.brand,
+      onPrimary:                Colors.white,
+      primaryContainer:         AppColors.successDim,   // mossDim
+      onPrimaryContainer:       AppColors.brand,
+      secondary:                AppColors.terra,
+      onSecondary:              Colors.white,
+      secondaryContainer:       AppColors.terraDim,
+      onSecondaryContainer:     AppColors.terra,
+      tertiary:                 AppColors.sky,
+      onTertiary:               Colors.white,
+      tertiaryContainer:        AppColors.skyDim,
+      onTertiaryContainer:      AppColors.sky,
+      error:                    AppColors.error,
+      onError:                  Colors.white,
+      errorContainer:           AppColors.errorDim,
+      onErrorContainer:         AppColors.terra,
+      surface:                  AppColors.surface,
+      onSurface:                AppColors.onBg,
+      surfaceContainerHighest:  AppColors.surfaceHigher,
+      surfaceContainerHigh:     AppColors.surfaceHigh,
+      surfaceContainer:         AppColors.surfaceHigh,
+      surfaceContainerLow:      AppColors.bg,
+      surfaceContainerLowest:   AppColors.bg,
+      onSurfaceVariant:         AppColors.onSurface,
+      outline:                  AppColors.outline,
+      outlineVariant:           AppColors.outlineHigh,
+      shadow:                   Colors.black,
+      scrim:                    Colors.black54,
+      inverseSurface:           AppColors.onBg,
+      onInverseSurface:         AppColors.surface,
+      inversePrimary:           AppColors.brandDeep,    // sage
     );
 
     return ThemeData(
-      useMaterial3: true,
-      colorScheme: cs,
+      useMaterial3:            true,
+      colorScheme:             cs,
       scaffoldBackgroundColor: AppColors.bg,
 
       // ── Typography ──
@@ -119,15 +135,16 @@ class AppTheme {
         elevation:          0,
         scrolledUnderElevation: 0,
         centerTitle:        false,
+        surfaceTintColor:   Colors.transparent,
         systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor:      Colors.transparent,
-          statusBarBrightness: Brightness.dark,
-          statusBarIconBrightness: Brightness.light,
+          statusBarColor:          Colors.transparent,
+          statusBarBrightness:     Brightness.light,     // iOS: donkere iconen
+          statusBarIconBrightness: Brightness.dark,      // Android: donkere iconen
         ),
         titleTextStyle: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-          color: AppColors.onBg,
+          fontSize:    20,
+          fontWeight:  FontWeight.w700,
+          color:       AppColors.onBg,
           letterSpacing: -0.3,
         ),
       ),
@@ -136,6 +153,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color:     AppColors.surface,
         elevation: 0,
+        shadowColor: Color(0x122D2720),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: AppColors.outline),
@@ -145,8 +163,12 @@ class AppTheme {
 
       // ── NavigationBar ──
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor:      AppColors.surface,
-        indicatorColor:       AppColors.brand.withOpacity(.2),
+        backgroundColor:    AppColors.surface,
+        indicatorColor:     Color(0x1A5A7A52), // moss 10%
+        surfaceTintColor:   Colors.transparent,
+        shadowColor:        Colors.black,
+        elevation:          4,
+        height:             72,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return const IconThemeData(color: AppColors.brand, size: 24);
@@ -159,16 +181,13 @@ class AppTheme {
           }
           return const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.muted);
         }),
-        surfaceTintColor:   Colors.transparent,
-        shadowColor:        Colors.black,
-        elevation:          8,
-        height:             72,
       ),
 
       // ── Bottom sheet ──
       bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor:       AppColors.surfaceHigh,
-        modalBackgroundColor:  AppColors.surfaceHigh,
+        backgroundColor:      AppColors.surface,
+        modalBackgroundColor: AppColors.surface,
+        surfaceTintColor:     Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
@@ -180,24 +199,29 @@ class AppTheme {
         filled:    true,
         fillColor: AppColors.surfaceHigh,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.outline),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.outline),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.brand, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.error),
         ),
-        hintStyle:  const TextStyle(color: AppColors.muted),
-        labelStyle: const TextStyle(color: AppColors.muted),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.error, width: 2),
+        ),
+        hintStyle:      const TextStyle(color: AppColors.muted),
+        labelStyle:     const TextStyle(color: AppColors.muted),
+        floatingLabelStyle: const TextStyle(color: AppColors.brand),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),
 
       // ── Buttons ──
@@ -206,7 +230,7 @@ class AppTheme {
           backgroundColor: AppColors.brand,
           foregroundColor: Colors.white,
           minimumSize:     const Size(double.infinity, 52),
-          shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(99)),
           textStyle:       const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 0.3),
           elevation:       0,
         ),
@@ -216,7 +240,7 @@ class AppTheme {
           backgroundColor: AppColors.brand,
           foregroundColor: Colors.white,
           minimumSize:     const Size(double.infinity, 52),
-          shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(99)),
           textStyle:       const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 0.3),
           elevation:       0,
         ),
@@ -225,7 +249,7 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.onBg,
           minimumSize:     const Size(double.infinity, 52),
-          shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(99)),
           side:            const BorderSide(color: AppColors.outline),
           textStyle:       const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
@@ -238,18 +262,19 @@ class AppTheme {
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: AppColors.brand,
         foregroundColor: Colors.white,
-        elevation:       4,
+        elevation:       2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
       ),
 
       // ── Chip ──
       chipTheme: ChipThemeData(
-        backgroundColor:    AppColors.surfaceHigh,
-        selectedColor:      AppColors.brand.withOpacity(.2),
-        side:               const BorderSide(color: AppColors.outline),
-        shape:              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        labelStyle:         const TextStyle(fontSize: 13, color: AppColors.onSurface),
-        checkmarkColor:     AppColors.brand,
+        backgroundColor:  AppColors.surfaceHigh,
+        selectedColor:    Color(0x1A5A7A52), // moss 10%
+        side:             const BorderSide(color: AppColors.outline),
+        shape:            RoundedRectangleBorder(borderRadius: BorderRadius.circular(99)),
+        labelStyle:       const TextStyle(fontSize: 13, color: AppColors.onSurface),
+        checkmarkColor:   AppColors.brand,
+        padding:          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       ),
 
       // ── Slider ──
@@ -257,7 +282,7 @@ class AppTheme {
         activeTrackColor:   AppColors.brand,
         thumbColor:         AppColors.brand,
         inactiveTrackColor: AppColors.outline,
-        overlayColor:       Color(0x1AFF7043),
+        overlayColor:       Color(0x1A5A7A52),
       ),
 
       // ── Checkbox ──
@@ -266,8 +291,24 @@ class AppTheme {
           if (states.contains(WidgetState.selected)) return AppColors.brand;
           return Colors.transparent;
         }),
-        side: const BorderSide(color: AppColors.outlineHigh, width: 2),
+        side:  const BorderSide(color: AppColors.outlineHigh, width: 2),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      ),
+
+      // ── Switch ──
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return Colors.white;
+          return AppColors.muted;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.brand;
+          return AppColors.surfaceHigh;
+        }),
+        trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return Colors.transparent;
+          return AppColors.outline;
+        }),
       ),
 
       // ── Divider ──
@@ -275,16 +316,34 @@ class AppTheme {
 
       // ── Progress ──
       progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color:           AppColors.brand,
+        color:            AppColors.brand,
         linearTrackColor: AppColors.outline,
       ),
 
       // ── SnackBar ──
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.surfaceHigher,
-        contentTextStyle: const TextStyle(color: AppColors.onBg),
+        backgroundColor:  AppColors.onBg,
+        contentTextStyle: const TextStyle(color: AppColors.surface),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
+        elevation: 2,
+      ),
+
+      // ── ListTile ──
+      listTileTheme: const ListTileThemeData(
+        tileColor:    Colors.transparent,
+        iconColor:    AppColors.onSurface,
+        textColor:    AppColors.onBg,
+        subtitleTextStyle: TextStyle(color: AppColors.muted, fontSize: 13),
+      ),
+
+      // ── Dialog ──
+      dialogTheme: DialogThemeData(
+        backgroundColor:  AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 4,
+        shadowColor: const Color(0x222D2720),
       ),
     );
   }

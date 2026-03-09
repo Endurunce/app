@@ -30,6 +30,6 @@ const sessionStyles = <String, SessionStyle>{
 
 SessionStyle styleFor(String type) =>
     sessionStyles[type] ?? const SessionStyle(
-      label: 'Training', emoji: '🏃', color: AppColors.onSurface, bg: AppColors.surfaceHigh, paceNote: '');
+      label: 'Training', emoji: '🏃', color: AppColors.brand, bg: AppColors.successDim, paceNote: '');
 
 const dayNames = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
