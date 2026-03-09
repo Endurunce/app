@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:html' as html show window; // ignore: avoid_web_libraries_in_flutter
 import '../../core/api_client.dart';
 
 class StravaActivity {
@@ -115,7 +117,11 @@ class StravaNotifier extends Notifier<StravaState> {
       final data = await client.get('/api/strava/connect') as Map<String, dynamic>;
       final authUrl = data['auth_url'] as String;
 
-      await launchUrl(Uri.parse(authUrl), mode: LaunchMode.externalApplication);
+      if (kIsWeb) {
+        html.window.open(authUrl, '_blank');
+      } else {
+        await launchUrl(Uri.parse(authUrl), mode: LaunchMode.externalApplication);
+      }
 
       _startPolling();
     } catch (e) {

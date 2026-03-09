@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/auth/auth_provider.dart';
 import '../features/auth/login_screen.dart';
+import '../features/auth/oauth_callback_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/plan/plan_screen.dart';
 import '../features/plan/week_detail_screen.dart';
@@ -45,19 +46,28 @@ CustomTransitionPage<T> _fadePage<T>(BuildContext ctx, GoRouterState state, Widg
       ),
     );
 
+class _AuthNotifier extends ChangeNotifier {
+  _AuthNotifier(Ref ref) {
+    ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
+  }
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+  final notifier = _AuthNotifier(ref);
 
   return GoRouter(
     initialLocation: '/plan',
+    refreshListenable: notifier,
     redirect: (context, state) {
-      final loggedIn = authState.token != null;
+      final loggedIn = ref.read(authProvider).token != null;
       final loc = state.matchedLocation;
-      final onAuth = loc.startsWith('/login') || loc.startsWith('/register');
+      final onAuth = loc.startsWith('/login') ||
+          loc.startsWith('/register') ||
+          loc.startsWith('/oauth');
 
       if (loc == '/') return loggedIn ? '/plan' : '/login';
       if (!loggedIn && !onAuth) return '/login';
-      if (loggedIn && onAuth) return '/plan';
+      if (loggedIn && onAuth && !loc.startsWith('/oauth')) return '/plan';
       return null;
     },
     routes: [
@@ -70,8 +80,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (ctx, state) => _fadePage(ctx, state, const RegisterScreen()),
       ),
       GoRoute(
+        path: '/oauth',
+        pageBuilder: (ctx, state) {
+          final sessionId = state.uri.queryParameters['session'] ?? '';
+          return _fadePage(ctx, state, OAuthCallbackScreen(sessionId: sessionId));
+        },
+      ),
+      GoRoute(
         path: '/intake',
-        pageBuilder: (ctx, state) => _slidePage(ctx, state, const IntakeScreen()),
+        pageBuilder: (ctx, state) {
+          final isNew = state.extra == true;
+          return _slidePage(ctx, state, IntakeScreen(showWelcome: isNew));
+        },
       ),
 
       // Main shell with bottom nav
