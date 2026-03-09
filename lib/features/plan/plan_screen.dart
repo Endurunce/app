@@ -170,10 +170,13 @@ class _PlanView extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFF1E1420), AppColors.surface],
+                    colors: [
+                      AppColors.brand.withOpacity(.14),
+                      AppColors.surface,
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: AppColors.brand.withOpacity(.25)),
