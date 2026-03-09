@@ -34,9 +34,12 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   String  _previousUltra = 'none';
 
   // Step 3 (optional)
-  final _time10kCtrl    = TextEditingController();
-  final _timeHalfCtrl   = TextEditingController();
+  final _time10kCtrl      = TextEditingController();
+  final _timeHalfCtrl     = TextEditingController();
   final _timeMarathonCtrl = TextEditingController();
+
+  // Step 4
+  final _raceTimeGoalCtrl = TextEditingController();
 
   // Step 4
   String? _raceGoal;
@@ -53,6 +56,9 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   bool _hrAuto = true;
   final _maxHrCtrl  = TextEditingController();
   final _restHrCtrl = TextEditingController(text: '55');
+  // Bewerkbare hartslagzones (lo/hi per zone)
+  final List<TextEditingController> _zoneLoCtrls = List.generate(5, (_) => TextEditingController());
+  final List<TextEditingController> _zoneHiCtrls = List.generate(5, (_) => TextEditingController());
 
   // Step 7
   String? _sleep;
@@ -81,6 +87,27 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     if (widget.showWelcome) {
       _showingWelcome = true;
     }
+
+    // Initialiseer zones met Karvonen defaults (leeftijd 30, rest 55)
+    _recalcZones(forceUpdate: true);
+  }
+
+  /// Herbereken hartslagzones op basis van max/rust HR. Overschrijft alleen als [forceUpdate].
+  void _recalcZones({bool forceUpdate = false}) {
+    final dob = _dateOfBirth ?? DateTime(DateTime.now().year - 30);
+    final today = DateTime.now();
+    var age = today.year - dob.year;
+    if (today.month < dob.month || (today.month == dob.month && today.day < dob.day)) age--;
+    final maxHr  = _hrAuto ? (220 - age) : (int.tryParse(_maxHrCtrl.text) ?? (220 - age));
+    final restHr = int.tryParse(_restHrCtrl.text) ?? 55;
+    final hrr    = (maxHr - restHr).toDouble();
+    int kv(double f) => (restHr + hrr * f).round();
+    final lows  = [kv(0.50), kv(0.60), kv(0.70), kv(0.80), kv(0.90)];
+    final highs = [kv(0.60), kv(0.70), kv(0.80), kv(0.90), maxHr];
+    for (int i = 0; i < 5; i++) {
+      if (forceUpdate || _zoneLoCtrls[i].text.isEmpty) _zoneLoCtrls[i].text = lows[i].toString();
+      if (forceUpdate || _zoneHiCtrls[i].text.isEmpty) _zoneHiCtrls[i].text = highs[i].toString();
+    }
   }
 
   // Hoe stap en totaal worden getoond in de indicator
@@ -93,8 +120,10 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     _time10kCtrl.dispose();
     _timeHalfCtrl.dispose();
     _timeMarathonCtrl.dispose();
+    _raceTimeGoalCtrl.dispose();
     _maxHrCtrl.dispose();
     _restHrCtrl.dispose();
+    for (final c in [..._zoneLoCtrls, ..._zoneHiCtrls]) c.dispose();
     _complaintsCtrl.dispose();
     super.dispose();
   }
@@ -186,6 +215,8 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         'race_goal':       _raceGoalCustomKm != null
             ? {'custom': {'distance_km': _raceGoalCustomKm}}
             : _raceGoal,
+        'race_time_goal':  _raceTimeGoalCtrl.text.trim().isNotEmpty
+            ? _raceTimeGoalCtrl.text.trim() : null,
         'race_date':       _raceDate?.toIso8601String().split('T')[0],
         'terrain':         _terrain ?? 'road',
         'training_days':   _trainingDays.toList()..sort(),
@@ -198,7 +229,18 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
             ? (220 - age)
             : (_maxHrCtrl.text.isNotEmpty ? int.tryParse(_maxHrCtrl.text) : null),
         'rest_hr':         int.tryParse(_restHrCtrl.text) ?? 55,
-        'hr_zones':        null,
+        'hr_zones': [
+          for (int i = 0; i < 5; i++) {
+            'num': i + 1,
+            'name': ['Herstel', 'Aerobe basis', 'Aerobe drempel', 'Anaerobe drempel', 'VO₂max'][i],
+            'lo':  int.tryParse(_zoneLoCtrls[i].text) ?? 0,
+            'hi':  int.tryParse(_zoneHiCtrls[i].text) ?? 0,
+            'color': ['#7bc67e', '#5a7a52', '#c49a5a', '#b85c3a', '#c0392b'][i],
+            'description': ['Actief herstel, wandelen', 'Lange duurlopen, praattempo',
+              'Tempoduurloop, comfortabel', 'Tempolopen, lactaatdrempel',
+              'Intervaltraining, max inspanning'][i],
+          }
+        ],
         'sleep_hours':     _sleep ?? 'seven_to_eight',
         'complaints':      _complaintsCtrl.text.isNotEmpty ? _complaintsCtrl.text : null,
         'previous_injuries': _previousInjuries.toList(),
@@ -575,14 +617,6 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               : null,
         ),
       ]),
-      const SizedBox(height: 16),
-      _SectionLabel('Eerdere ultra-afstand'),
-      _ChipRow(
-        values: ['none', 'twenty_five_km', 'fifty_km', 'hundred_km_plus'],
-        labels: ['Geen', '25 km', '50 km', '100 km+'],
-        selected: _previousUltra,
-        onSelect: (v) => setState(() => _previousUltra = v),
-      ),
     ],
   );
 
@@ -819,6 +853,20 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
           selected: _terrain,
           onSelect: (v) => setState(() => _terrain = v),
         ),
+
+        if (_raceGoal != null) ...[
+          const SizedBox(height: 20),
+          _SectionLabel('Tijdsdoelstelling (optioneel)'),
+          TextField(
+            controller: _raceTimeGoalCtrl,
+            style: const TextStyle(color: AppColors.onBg),
+            decoration: const InputDecoration(
+              labelText: 'Streeftijd',
+              hintText: 'Bijv. 3:45:00 of 45:30',
+              prefixIcon: Icon(Icons.timer_outlined, size: 18),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -956,19 +1004,9 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     final today = DateTime.now();
     var age = today.year - dob.year;
     if (today.month < dob.month || (today.month == dob.month && today.day < dob.day)) age--;
-    final maxHr  = _hrAuto ? (220 - age) : (int.tryParse(_maxHrCtrl.text) ?? 190);
-    final restHr = int.tryParse(_restHrCtrl.text) ?? 55;
-    final hrr    = maxHr - restHr;
 
-    int kv(double f) => (restHr + hrr * f).round();
-
-    final zones = [
-      (name: 'Z1 Herstel',            color: const Color(0xFF7bc67e), low: kv(0.50), high: kv(0.60)),
-      (name: 'Z2 Aerobe basis',       color: const Color(0xFF5a7a52), low: kv(0.60), high: kv(0.70)),
-      (name: 'Z3 Aerobe drempel',     color: const Color(0xFFc49a5a), low: kv(0.70), high: kv(0.80)),
-      (name: 'Z4 Anaerobe drempel',   color: const Color(0xFFb85c3a), low: kv(0.80), high: kv(0.90)),
-      (name: 'Z5 VO₂max',             color: const Color(0xFFc0392b), low: kv(0.90), high: maxHr),
-    ];
+    const zoneNames   = ['Z1 Herstel', 'Z2 Aerobe basis', 'Z3 Aerobe drempel', 'Z4 Anaerobe drempel', 'Z5 VO₂max'];
+    const zoneColors  = [Color(0xFF7bc67e), Color(0xFF5a7a52), Color(0xFFc49a5a), Color(0xFFb85c3a), Color(0xFFc0392b)];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -976,12 +1014,15 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         _StepHeader(emoji: '❤️', title: 'Hartslagzones',
             subtitle: 'Optioneel — helpt ons je trainingsintensiteit te calibreren'),
 
-        // Auto/manual toggle
+        // Auto/manual max HR toggle
         _MobilityOption(
           label: 'Automatisch berekenen (220 − leeftijd)',
           subtitle: 'Max HR = ${220 - age} bpm',
           selected: _hrAuto,
-          onTap: () => setState(() => _hrAuto = true),
+          onTap: () => setState(() {
+            _hrAuto = true;
+            _recalcZones(forceUpdate: true);
+          }),
         ),
         const SizedBox(height: 8),
         _MobilityOption(
@@ -1020,21 +1061,72 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         ),
 
         const SizedBox(height: 20),
-        _SectionLabel('Jouw zones'),
-        ...zones.map((z) => Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('JOUW ZONES', style: TextStyle(
+              fontSize: 11, letterSpacing: 1, fontWeight: FontWeight.w600,
+              color: AppColors.muted,
+            )),
+            TextButton.icon(
+              onPressed: () => setState(() => _recalcZones(forceUpdate: true)),
+              icon: const Icon(Icons.refresh, size: 14),
+              label: const Text('Herbereken', style: TextStyle(fontSize: 12)),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...List.generate(5, (i) => Padding(
+          padding: const EdgeInsets.only(bottom: 10),
           child: Row(children: [
             Container(
               width: 12, height: 12,
-              decoration: BoxDecoration(color: z.color, shape: BoxShape.circle),
+              decoration: BoxDecoration(color: zoneColors[i], shape: BoxShape.circle),
             ),
-            const SizedBox(width: 10),
-            Expanded(child: Text(z.name,
-                style: const TextStyle(fontSize: 13, color: AppColors.onSurface))),
-            Text('${z.low}–${z.high} bpm',
-                style: const TextStyle(
-                  fontSize: 13, color: AppColors.muted,
-                  fontWeight: FontWeight.w600, fontFamily: 'monospace')),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 130,
+              child: Text(zoneNames[i],
+                  style: const TextStyle(fontSize: 13, color: AppColors.onSurface)),
+            ),
+            Expanded(
+              child: TextField(
+                controller: _zoneLoCtrls[i],
+                keyboardType: TextInputType.number,
+                style: const TextStyle(fontSize: 13, color: AppColors.onBg),
+                textAlign: TextAlign.center,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  hintText: 'van',
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4),
+              child: Text('–', style: TextStyle(color: AppColors.muted)),
+            ),
+            Expanded(
+              child: TextField(
+                controller: _zoneHiCtrls[i],
+                keyboardType: TextInputType.number,
+                style: const TextStyle(fontSize: 13, color: AppColors.onBg),
+                textAlign: TextAlign.center,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  hintText: 'tot',
+                  suffixText: 'bpm',
+                  suffixStyle: TextStyle(fontSize: 11, color: AppColors.muted),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
           ]),
         )),
       ],
