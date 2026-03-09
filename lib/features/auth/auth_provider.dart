@@ -1,46 +1,47 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'dart:html' as html show window; // ignore: avoid_web_libraries_in_flutter
 import '../../core/api_client.dart';
 
 class AuthState {
-  final String? token;
-  final String? userId;
-  final String? email;
-  final String? displayName;
-  final int?    age;
-  final String? gender; // 'male' | 'female' | 'other'
-  final bool loading;
-  final String? error;
+  final String?   token;
+  final String?   userId;
+  final String?   email;
+  final String?   displayName;
+  /// Geboortedatum verplicht voor DPIA leeftijdsverificatie (minimumleeftijd 16 jaar)
+  final DateTime? dateOfBirth;
+  final String?   gender; // 'male' | 'female' | 'other'
+  final bool      loading;
+  final String?   error;
 
   const AuthState({
     this.token,
     this.userId,
     this.email,
     this.displayName,
-    this.age,
+    this.dateOfBirth,
     this.gender,
     this.loading = false,
     this.error,
   });
 
   AuthState copyWith({
-    String? token,
-    String? userId,
-    String? email,
-    String? displayName,
-    int?    age,
-    String? gender,
-    bool?   loading,
-    String? error,
-    bool clearError = false,
+    String?   token,
+    String?   userId,
+    String?   email,
+    String?   displayName,
+    DateTime? dateOfBirth,
+    String?   gender,
+    bool?     loading,
+    String?   error,
+    bool      clearError = false,
   }) => AuthState(
     token:       token       ?? this.token,
     userId:      userId      ?? this.userId,
     email:       email       ?? this.email,
     displayName: displayName ?? this.displayName,
-    age:         age         ?? this.age,
+    dateOfBirth: dateOfBirth ?? this.dateOfBirth,
     gender:      gender      ?? this.gender,
     loading:     loading     ?? this.loading,
     error:       clearError ? null : (error ?? this.error),
@@ -102,13 +103,13 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  /// Sla naam/leeftijd/geslacht op na de register-stap of intake prefill.
+  /// Sla naam/geboortedatum/geslacht op na de register-stap of intake prefill.
   void setPersonalInfo({
-    required String name,
-    required int age,
-    required String gender,
+    required String   name,
+    required DateTime dateOfBirth,
+    required String   gender,
   }) {
-    state = state.copyWith(displayName: name, age: age, gender: gender);
+    state = state.copyWith(displayName: name, dateOfBirth: dateOfBirth, gender: gender);
   }
 
   Future<bool> loginWithStrava() async {
@@ -120,7 +121,7 @@ class AuthNotifier extends Notifier<AuthState> {
       final authUrl = data['auth_url'] as String;
 
       if (kIsWeb) {
-        await launchUrl(Uri.parse(authUrl), webOnlyWindowName: '_self');
+        html.window.location.href = authUrl;
         return false;
       }
 
@@ -159,7 +160,7 @@ class AuthNotifier extends Notifier<AuthState> {
       final authUrl = data['auth_url'] as String;
 
       if (kIsWeb) {
-        await launchUrl(Uri.parse(authUrl), webOnlyWindowName: '_self');
+        html.window.location.href = authUrl;
         return false;
       }
 
@@ -193,6 +194,29 @@ class AuthNotifier extends Notifier<AuthState> {
   void applyWebAuthHash(String displayName) {
     if (displayName.isNotEmpty) {
       state = state.copyWith(displayName: displayName);
+    }
+  }
+
+  /// Haal JWT op via een eenmalige OAuth-sessie (session-based web redirect).
+  /// Returns (isOk, isNew) — isNew is true when the account was just created.
+  Future<(bool, bool)> loginWithSession(String sessionId) async {
+    state = state.copyWith(loading: true, clearError: true);
+    try {
+      final client = ref.read(apiClientProvider);
+      final data = await client.get('/api/auth/session/$sessionId');
+      final token = data['token'] as String;
+      final isNew = data['is_new'] as bool? ?? false;
+      await saveToken(token);
+      state = state.copyWith(
+        loading:     false,
+        token:       token,
+        email:       data['email'] as String? ?? '',
+        displayName: data['display_name'] as String?,
+      );
+      return (true, isNew);
+    } catch (e) {
+      state = state.copyWith(loading: false, error: 'Inloggen mislukt. Probeer opnieuw.');
+      return (false, false);
     }
   }
 

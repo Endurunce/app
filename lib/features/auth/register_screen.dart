@@ -21,7 +21,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   // Fase 2: persoonlijk
   final _nameCtrl = TextEditingController();
-  final _ageCtrl  = TextEditingController();
+  DateTime? _dateOfBirth;
   String? _gender;
 
   int _phase = 1; // 1 = account, 2 = persoonlijk
@@ -31,7 +31,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _nameCtrl.dispose();
-    _ageCtrl.dispose();
     super.dispose();
   }
 
@@ -43,21 +42,33 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
+  bool get _isUnderSixteen {
+    if (_dateOfBirth == null) return false;
+    final today = DateTime.now();
+    var age = today.year - _dateOfBirth!.year;
+    if (today.month < _dateOfBirth!.month ||
+        (today.month == _dateOfBirth!.month && today.day < _dateOfBirth!.day)) {
+      age--;
+    }
+    return age < 16;
+  }
+
   void _submitPersonal() {
-    final age = int.tryParse(_ageCtrl.text.trim());
-    if (_nameCtrl.text.trim().isEmpty || age == null || _gender == null) return;
+    if (_nameCtrl.text.trim().isEmpty || _dateOfBirth == null || _gender == null) return;
+    if (_isUnderSixteen) return;
 
     ref.read(authProvider.notifier).setPersonalInfo(
-      name:   _nameCtrl.text.trim(),
-      age:    age,
-      gender: _gender!,
+      name:        _nameCtrl.text.trim(),
+      dateOfBirth: _dateOfBirth!,
+      gender:      _gender!,
     );
-    context.go('/intake');
+    context.go('/intake', extra: true);
   }
 
   bool get _phase2Valid =>
       _nameCtrl.text.trim().isNotEmpty &&
-      int.tryParse(_ageCtrl.text.trim()) != null &&
+      _dateOfBirth != null &&
+      !_isUnderSixteen &&
       _gender != null;
 
   @override
@@ -90,15 +101,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   onSubmit:     _registerAccount,
                 )
               : _Phase2(
-                  key: const ValueKey(2),
-                  nameCtrl: _nameCtrl,
-                  ageCtrl:  _ageCtrl,
-                  gender:   _gender,
-                  valid:    _phase2Valid,
-                  onGenderSelect: (v) => setState(() => _gender = v),
-                  onNameChanged:  () => setState(() {}),
-                  onAgeChanged:   () => setState(() {}),
-                  onSubmit:       _submitPersonal,
+                  key:          const ValueKey(2),
+                  nameCtrl:     _nameCtrl,
+                  dateOfBirth:  _dateOfBirth,
+                  isUnder16:    _isUnderSixteen,
+                  gender:       _gender,
+                  valid:        _phase2Valid,
+                  onGenderSelect:    (v) => setState(() => _gender = v),
+                  onNameChanged:     () => setState(() {}),
+                  onDateOfBirthPick: (d) => setState(() => _dateOfBirth = d),
+                  onSubmit:          _submitPersonal,
                 ),
         ),
       ),
@@ -218,25 +230,45 @@ class _Phase1 extends StatelessWidget {
 
 class _Phase2 extends StatelessWidget {
   final TextEditingController nameCtrl;
-  final TextEditingController ageCtrl;
+  final DateTime? dateOfBirth;
+  final bool isUnder16;
   final String? gender;
   final bool valid;
   final ValueChanged<String> onGenderSelect;
   final VoidCallback onNameChanged;
-  final VoidCallback onAgeChanged;
+  final ValueChanged<DateTime> onDateOfBirthPick;
   final VoidCallback onSubmit;
 
   const _Phase2({
     super.key,
     required this.nameCtrl,
-    required this.ageCtrl,
+    required this.dateOfBirth,
+    required this.isUnder16,
     required this.gender,
     required this.valid,
     required this.onGenderSelect,
     required this.onNameChanged,
-    required this.onAgeChanged,
+    required this.onDateOfBirthPick,
     required this.onSubmit,
   });
+
+  String get _dobLabel {
+    if (dateOfBirth == null) return 'Geboortedatum kiezen';
+    return '${dateOfBirth!.day.toString().padLeft(2, '0')}-'
+        '${dateOfBirth!.month.toString().padLeft(2, '0')}-'
+        '${dateOfBirth!.year}';
+  }
+
+  Future<void> _pickDate(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: dateOfBirth ?? DateTime(2000),
+      firstDate: DateTime(1920),
+      lastDate: DateTime.now(),
+      helpText: 'Selecteer je geboortedatum',
+    );
+    if (picked != null) onDateOfBirthPick(picked);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -286,16 +318,24 @@ class _Phase2 extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
 
-                TextField(
-                  controller: ageCtrl,
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(color: AppColors.onBg),
-                  decoration: const InputDecoration(
-                    labelText: 'Leeftijd',
-                    hintText: '28',
-                    prefixIcon: Icon(Icons.cake_outlined, size: 20),
+                // Geboortedatum picker (verplicht voor DPIA leeftijdsverificatie)
+                GestureDetector(
+                  onTap: () => _pickDate(context),
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Geboortedatum',
+                      prefixIcon: const Icon(Icons.cake_outlined, size: 20),
+                      errorText: isUnder16
+                          ? 'Je moet minimaal 16 jaar oud zijn om deze app te gebruiken.'
+                          : null,
+                    ),
+                    child: Text(
+                      _dobLabel,
+                      style: TextStyle(
+                        color: dateOfBirth == null ? AppColors.muted : AppColors.onBg,
+                      ),
+                    ),
                   ),
-                  onChanged: (_) => onAgeChanged(),
                 ),
                 const SizedBox(height: 20),
 

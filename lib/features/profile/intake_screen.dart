@@ -8,7 +8,8 @@ import '../../features/plan/plan_provider.dart';
 import '../../shared/theme/app_theme.dart';
 
 class IntakeScreen extends ConsumerStatefulWidget {
-  const IntakeScreen({super.key});
+  final bool showWelcome;
+  const IntakeScreen({super.key, this.showWelcome = false});
 
   @override
   ConsumerState<IntakeScreen> createState() => _IntakeScreenState();
@@ -20,15 +21,16 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   static const _totalSteps = 7;
   bool _submitting = false;
   bool _step1Prefilled = false; // stap 1 overslaan als alles al bekend is
+  bool _showingWelcome = false; // welkomstslide voor nieuwe accounts
 
   // Step 1
   final _nameCtrl = TextEditingController();
-  final _ageCtrl  = TextEditingController();
+  DateTime? _dateOfBirth;
   String? _gender;
 
   // Step 2
   String? _runningYears;
-  double  _weeklyKm    = 40;
+  double  _weeklyKm    = 0;
   String  _previousUltra = 'none';
 
   // Step 3 (optional)
@@ -63,16 +65,21 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     // Prefill vanuit auth state (register-fase-2 of Strava/Google-naam)
     final auth = ref.read(authProvider);
     if (auth.displayName != null) _nameCtrl.text = auth.displayName!;
-    if (auth.age != null) _ageCtrl.text = auth.age.toString();
+    if (auth.dateOfBirth != null) _dateOfBirth = auth.dateOfBirth;
     if (auth.gender != null) _gender = auth.gender;
 
     // Als alle drie al ingevuld zijn, sla stap 1 over
     if (_nameCtrl.text.isNotEmpty &&
-        _ageCtrl.text.isNotEmpty &&
+        _dateOfBirth != null &&
         _gender != null) {
       _step1Prefilled = true;
       _step = 2;
       _fromStep = 2;
+    }
+
+    // Welkomstslide tonen voor nieuwe accounts
+    if (widget.showWelcome) {
+      _showingWelcome = true;
     }
   }
 
@@ -83,7 +90,6 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _ageCtrl.dispose();
     _time10kCtrl.dispose();
     _timeHalfCtrl.dispose();
     _timeMarathonCtrl.dispose();
@@ -93,9 +99,38 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     super.dispose();
   }
 
+  bool get _isUnderSixteen {
+    if (_dateOfBirth == null) return false;
+    final today = DateTime.now();
+    var age = today.year - _dateOfBirth!.year;
+    if (today.month < _dateOfBirth!.month ||
+        (today.month == _dateOfBirth!.month && today.day < _dateOfBirth!.day)) {
+      age--;
+    }
+    return age < 16;
+  }
+
+  String get _dobLabel {
+    if (_dateOfBirth == null) return 'Geboortedatum kiezen';
+    return '${_dateOfBirth!.day.toString().padLeft(2, '0')}-'
+        '${_dateOfBirth!.month.toString().padLeft(2, '0')}-'
+        '${_dateOfBirth!.year}';
+  }
+
+  Future<void> _pickDateOfBirth() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dateOfBirth ?? DateTime(2000),
+      firstDate: DateTime(1920),
+      lastDate: DateTime.now(),
+      helpText: 'Selecteer je geboortedatum',
+    );
+    if (picked != null) setState(() => _dateOfBirth = picked);
+  }
+
   bool get _canNext {
     switch (_step) {
-      case 1: return _nameCtrl.text.isNotEmpty && _ageCtrl.text.isNotEmpty && _gender != null;
+      case 1: return _nameCtrl.text.isNotEmpty && _dateOfBirth != null && !_isUnderSixteen && _gender != null;
       case 2: return _runningYears != null;
       case 3: return true; // optional
       case 4: return _raceGoal != null && _raceDate != null && _terrain != null;
@@ -116,7 +151,11 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
 
   void _prevStep() {
     final minStep = _step1Prefilled ? 2 : 1;
-    if (_step > minStep) setState(() { _fromStep = _step; _step--; });
+    if (_step > minStep) {
+      setState(() { _fromStep = _step; _step--; });
+    } else if (widget.showWelcome) {
+      setState(() => _showingWelcome = true);
+    }
   }
 
   void _skipStep() {
@@ -127,14 +166,17 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     setState(() => _submitting = true);
     try {
       final client = ref.read(apiClientProvider);
-      final age = int.tryParse(_ageCtrl.text) ?? 30;
+      final dob = _dateOfBirth ?? DateTime(1990);
+      final today = DateTime.now();
+      var age = today.year - dob.year;
+      if (today.month < dob.month || (today.month == dob.month && today.day < dob.day)) age--;
 
       final profile = {
-        'id':      'ffffffff-ffff-ffff-ffff-ffffffffffff',
-        'user_id': 'ffffffff-ffff-ffff-ffff-ffffffffffff',
-        'name':    _nameCtrl.text.trim(),
-        'age':     age,
-        'gender':  _gender ?? 'other',
+        'id':             'ffffffff-ffff-ffff-ffff-ffffffffffff',
+        'user_id':        'ffffffff-ffff-ffff-ffff-ffffffffffff',
+        'name':           _nameCtrl.text.trim(),
+        'date_of_birth':  '${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}',
+        'gender':         _gender ?? 'other',
         'running_years':   _runningYears ?? 'two_to_five_years',
         'weekly_km':       _weeklyKm,
         'previous_ultra':  _previousUltra,
@@ -178,12 +220,14 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_showingWelcome) return _buildWelcomePage();
+
     final isSkippable = _step == 3 || _step == 6;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Jouw plan opmaken'),
-        leading: (_step1Prefilled ? _step > 2 : _step > 1)
+        leading: (_step1Prefilled ? _step > 2 : _step > 1) || widget.showWelcome
             ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: _prevStep)
             : IconButton(
                 icon: const Icon(Icons.close),
@@ -276,6 +320,150 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     );
   }
 
+  Widget _buildWelcomePage() {
+    final name = ref.read(authProvider).displayName;
+    final greeting = (name != null && name.isNotEmpty) ? 'Welkom, $name!' : 'Welkom bij Endurance!';
+
+    const features = [
+      ('🎯', 'Doelgericht plan', 'Afgestemd op jouw race, niveau en tijdslot'),
+      ('📅', 'Wekelijks schema', 'Sessies verdeeld over jouw eigen trainingsdagen'),
+      ('💬', 'AI-coach', 'Persoonlijk advies en begeleiding tijdens je training'),
+      ('📈', 'Slim opbouwen', 'Progressieve belasting richting je piekweek'),
+    ];
+
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Spacer(flex: 2),
+
+              // Icon
+              Center(
+                child: Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.brand, AppColors.brandDeep],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.brand.withValues(alpha: .35),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Text('🏃', style: TextStyle(fontSize: 42)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              Text(
+                greeting,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'We gaan nu een persoonlijk trainingsplan voor je opmaken.\nDit duurt ongeveer 2 minuten.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.onSurface,
+                  height: 1.55,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const Spacer(flex: 2),
+
+              // Feature list
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.outline),
+                ),
+                child: Column(
+                  children: features.map((f) {
+                    final isLast = f == features.last;
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: isLast ? 0 : 18),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceHigh,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text(f.$1, style: const TextStyle(fontSize: 20)),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  f.$2,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    color: AppColors.onBg,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  f.$3,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.muted,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+
+              const Spacer(flex: 3),
+
+              FilledButton.icon(
+                onPressed: () => setState(() => _showingWelcome = false),
+                icon: const Icon(Icons.arrow_forward, size: 18),
+                label: const Text('Plan opmaken'),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => context.go('/plan'),
+                child: const Text('Later instellen'),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildStep() {
     return switch (_step) {
       1 => _stepPersonal(),
@@ -307,16 +495,23 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         onChanged: (_) => setState(() {}),
       ),
       const SizedBox(height: 14),
-      TextField(
-        controller: _ageCtrl,
-        keyboardType: TextInputType.number,
-        style: const TextStyle(color: AppColors.onBg),
-        decoration: const InputDecoration(
-          labelText: 'Leeftijd',
-          hintText: '28',
-          prefixIcon: Icon(Icons.cake_outlined, size: 18),
+      GestureDetector(
+        onTap: _pickDateOfBirth,
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: 'Geboortedatum',
+            prefixIcon: const Icon(Icons.cake_outlined, size: 18),
+            errorText: _isUnderSixteen
+                ? 'Je moet minimaal 16 jaar oud zijn om deze app te gebruiken.'
+                : null,
+          ),
+          child: Text(
+            _dobLabel,
+            style: TextStyle(
+              color: _dateOfBirth == null ? AppColors.muted : AppColors.onBg,
+            ),
+          ),
         ),
-        onChanged: (_) => setState(() {}),
       ),
       const SizedBox(height: 20),
       _SectionLabel('Geslacht'),
@@ -362,21 +557,21 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
       Row(children: [
         IconButton(
           icon: const Icon(Icons.remove, size: 20, color: AppColors.muted),
-          onPressed: _weeklyKm > 10
-              ? () => setState(() => _weeklyKm = (_weeklyKm - 5).clamp(10, 150))
+          onPressed: _weeklyKm > 0
+              ? () => setState(() => _weeklyKm = (_weeklyKm - 5).clamp(0, 150))
               : null,
         ),
         Expanded(
           child: Slider(
             value: _weeklyKm,
-            min: 10, max: 150, divisions: 28,
+            min: 0, max: 150, divisions: 30,
             onChanged: (v) => setState(() => _weeklyKm = v),
           ),
         ),
         IconButton(
           icon: const Icon(Icons.add, size: 20, color: AppColors.muted),
           onPressed: _weeklyKm < 150
-              ? () => setState(() => _weeklyKm = (_weeklyKm + 5).clamp(10, 150))
+              ? () => setState(() => _weeklyKm = (_weeklyKm + 5).clamp(0, 150))
               : null,
         ),
       ]),
@@ -757,7 +952,10 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   // ── Step 6: Heart rate (optional) ───────────────────────────────────────────
 
   Widget _stepHeartrate() {
-    final age    = int.tryParse(_ageCtrl.text) ?? 30;
+    final dob = _dateOfBirth ?? DateTime(DateTime.now().year - 30);
+    final today = DateTime.now();
+    var age = today.year - dob.year;
+    if (today.month < dob.month || (today.month == dob.month && today.day < dob.day)) age--;
     final maxHr  = _hrAuto ? (220 - age) : (int.tryParse(_maxHrCtrl.text) ?? 190);
     final restHr = int.tryParse(_restHrCtrl.text) ?? 55;
     final hrr    = maxHr - restHr;
