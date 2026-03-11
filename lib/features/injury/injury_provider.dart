@@ -28,6 +28,43 @@ class Injury {
   );
 }
 
+class InjuryHistoryItem {
+  final String id;
+  final int severity;
+  final bool canRun;
+  final String recoveryStatus;
+  final String reportedAt;
+  final String? resolvedAt;
+  final List<String> locations;
+  final String? description;
+
+  const InjuryHistoryItem({
+    required this.id,
+    required this.severity,
+    required this.canRun,
+    required this.recoveryStatus,
+    required this.reportedAt,
+    required this.locations,
+    this.resolvedAt,
+    this.description,
+  });
+
+  bool get isResolved => recoveryStatus == 'resolved';
+
+  factory InjuryHistoryItem.fromJson(Map<String, dynamic> j) => InjuryHistoryItem(
+    id:             j['id'] as String,
+    severity:       j['severity'] as int,
+    canRun:         j['can_run'] as bool,
+    recoveryStatus: j['recovery_status'] as String,
+    reportedAt:     j['reported_at'] as String,
+    resolvedAt:     j['resolved_at'] as String?,
+    locations:      (j['locations'] as List).cast<String>(),
+    description:    j['description'] as String?,
+  );
+}
+
+// ── Active injuries state ──────────────────────────────────────────────────────
+
 class InjuryNotifier extends Notifier<List<Injury>> {
   @override
   List<Injury> build() => [];
@@ -74,3 +111,40 @@ class InjuryNotifier extends Notifier<List<Injury>> {
 }
 
 final injuryProvider = NotifierProvider<InjuryNotifier, List<Injury>>(InjuryNotifier.new);
+
+// ── Injury history state ───────────────────────────────────────────────────────
+
+class InjuryHistoryState {
+  final List<InjuryHistoryItem> items;
+  final bool loading;
+
+  const InjuryHistoryState({this.items = const [], this.loading = false});
+
+  InjuryHistoryState copyWith({List<InjuryHistoryItem>? items, bool? loading}) =>
+      InjuryHistoryState(
+        items:   items   ?? this.items,
+        loading: loading ?? this.loading,
+      );
+}
+
+class InjuryHistoryNotifier extends Notifier<InjuryHistoryState> {
+  @override
+  InjuryHistoryState build() => const InjuryHistoryState();
+
+  Future<void> load() async {
+    state = state.copyWith(loading: true);
+    try {
+      final client = ref.read(apiClientProvider);
+      final data = await client.get('/api/injuries/history') as List;
+      state = state.copyWith(
+        loading: false,
+        items: data.map((e) => InjuryHistoryItem.fromJson(e)).toList(),
+      );
+    } catch (_) {
+      state = state.copyWith(loading: false);
+    }
+  }
+}
+
+final injuryHistoryProvider =
+    NotifierProvider<InjuryHistoryNotifier, InjuryHistoryState>(InjuryHistoryNotifier.new);
