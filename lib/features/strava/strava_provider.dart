@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -108,8 +109,9 @@ class StravaNotifier extends Notifier<StravaState> {
         avatarUrl:   data['avatar_url'] as String?,
       );
       if (connected) await loadActivities();
-    } catch (_) {
-      state = state.copyWith(loading: false);
+    } catch (e, stack) {
+      developer.log('Failed to check Strava status', name: 'StravaProvider', error: e, stackTrace: stack);
+      state = state.copyWith(loading: false, error: 'Strava status check mislukt.');
     }
   }
 
@@ -152,7 +154,9 @@ class StravaNotifier extends Notifier<StravaState> {
           );
           await loadActivities();
         }
-      } catch (_) {}
+      } catch (e) {
+        developer.log('Strava poll error', name: 'StravaProvider', error: e);
+      }
     });
   }
 
@@ -170,7 +174,9 @@ class StravaNotifier extends Notifier<StravaState> {
           .where((a) => ['Run', 'TrailRun', 'Hike', 'Walk'].contains(a.type))
           .toList();
       state = state.copyWith(activities: acts);
-    } catch (_) {}
+    } catch (e, stack) {
+      developer.log('Failed to load Strava activities', name: 'StravaProvider', error: e, stackTrace: stack);
+    }
   }
 }
 

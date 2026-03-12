@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
 
@@ -121,8 +123,9 @@ class ProfileNotifier extends Notifier<ProfileState> {
         loading: false,
         profile: UserProfile.fromJson(data as Map<String, dynamic>),
       );
-    } catch (_) {
-      state = state.copyWith(loading: false);
+    } catch (e, stack) {
+      developer.log('Failed to load profile', name: 'ProfileProvider', error: e, stackTrace: stack);
+      state = state.copyWith(loading: false, error: 'Kon profiel niet laden.');
     }
   }
 
@@ -145,7 +148,8 @@ class ProfileNotifier extends Notifier<ProfileState> {
       await client.patch('/api/profiles/me', data: body);
       await load();
       return true;
-    } catch (_) {
+    } catch (e, stack) {
+      developer.log('Failed to update profile', name: 'ProfileProvider', error: e, stackTrace: stack);
       return false;
     }
   }
