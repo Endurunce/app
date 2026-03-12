@@ -89,7 +89,7 @@ class _MessageBubbleState extends State<MessageBubble>
                     ),
                   ),
                   child: isUser
-                      ? Text(
+                      ? SelectableText(
                           widget.message.content,
                           style: const TextStyle(
                             fontSize: 14,
@@ -98,6 +98,7 @@ class _MessageBubbleState extends State<MessageBubble>
                           ),
                         )
                       : MarkdownBody(
+                          selectable: true,
                           data: widget.message.content,
                           shrinkWrap: true,
                           styleSheet: MarkdownStyleSheet(
