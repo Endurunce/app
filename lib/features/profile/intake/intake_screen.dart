@@ -365,10 +365,15 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                   child: SlideTransition(position: offset, child: child),
                 );
               },
-              child: SingleChildScrollView(
-                key: ValueKey(_step),
-                padding: const EdgeInsets.all(20),
-                child: _buildStep(),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: SingleChildScrollView(
+                    key: ValueKey(_step),
+                    padding: const EdgeInsets.all(20),
+                    child: _buildStep(),
+                  ),
+                ),
               ),
             ),
           ),

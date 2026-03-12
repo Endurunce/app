@@ -7,7 +7,7 @@ class UserProfile {
   final String name;
   final int age;
   final String gender;
-  final dynamic raceGoal; // raw JSON
+  final Object? raceGoal; // JSON: String | Map | null
   final String? raceDate;
   final String terrain;
   final double weeklyKm;
