@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
 
@@ -74,7 +76,8 @@ class InjuryNotifier extends Notifier<List<Injury>> {
       final client = ref.read(apiClientProvider);
       final data = await client.get('/api/injuries') as List;
       state = data.map((e) => Injury.fromJson(e)).toList();
-    } catch (_) {
+    } catch (e, stack) {
+      developer.log('Failed to load injuries', name: 'InjuryProvider', error: e, stackTrace: stack);
       state = [];
     }
   }
@@ -98,7 +101,8 @@ class InjuryNotifier extends Notifier<List<Injury>> {
       await load();
       final recoveryWeeks = resp['recovery_weeks'] as int;
       return 'Blessure geregistreerd. Geschat herstel: $recoveryWeeks week(en). Je plan is aangepast.';
-    } catch (e) {
+    } catch (e, stack) {
+      developer.log('Failed to report injury', name: 'InjuryProvider', error: e, stackTrace: stack);
       return null;
     }
   }
@@ -140,7 +144,8 @@ class InjuryHistoryNotifier extends Notifier<InjuryHistoryState> {
         loading: false,
         items: data.map((e) => InjuryHistoryItem.fromJson(e)).toList(),
       );
-    } catch (_) {
+    } catch (e, stack) {
+      developer.log('Failed to load injury history', name: 'InjuryProvider', error: e, stackTrace: stack);
       state = state.copyWith(loading: false);
     }
   }

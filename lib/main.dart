@@ -1,3 +1,6 @@
+import 'dart:developer' as developer;
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +10,29 @@ import 'shared/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Global Flutter error handler (widget-level)
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    developer.log(
+      'FlutterError: ${details.exceptionAsString()}',
+      name: 'global',
+      error: details.exception,
+      stackTrace: details.stack,
+    );
+  };
+
+  // Global platform error handler (async / isolate errors)
+  PlatformDispatcher.instance.onError = (error, stack) {
+    developer.log(
+      'PlatformError: $error',
+      name: 'global',
+      error: error,
+      stackTrace: stack,
+    );
+    return true; // prevent crash, error is logged
+  };
+
   runApp(const ProviderScope(child: EnduranceApp()));
 }
 

@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
 
@@ -111,10 +113,11 @@ class PlanNotifier extends Notifier<PlanState> {
       final client = ref.read(apiClientProvider);
       final data = await client.get('/api/plans');
       state = state.copyWith(loading: false, plan: TrainingPlan.fromJson(data));
-    } catch (e) {
+    } catch (e, stack) {
       final msg = e.toString().contains('404')
           ? 'no_plan'
           : 'Kon plan niet laden.';
+      developer.log('Failed to load plan', name: 'PlanProvider', error: e, stackTrace: stack);
       state = state.copyWith(loading: false, error: msg);
     }
   }
@@ -160,7 +163,8 @@ class PlanNotifier extends Notifier<PlanState> {
       final client = ref.read(apiClientProvider);
       final data = await client.get('/api/plans/$planId/weeks/$weekNumber/days/$weekday/advice');
       return data as Map<String, dynamic>;
-    } catch (_) {
+    } catch (e, stack) {
+      developer.log('Failed to get session advice', name: 'PlanProvider', error: e, stackTrace: stack);
       return null;
     }
   }
