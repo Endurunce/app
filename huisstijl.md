@@ -1,6 +1,6 @@
 # Endurunce — Huisstijl
 
-> Versie 1.0 · Maart 2026
+> Versie 2.0 · Maart 2026
 
 ---
 
@@ -10,60 +10,78 @@
 
 ---
 
+## Design Philosophy
+
+**Warm & earthy light theme.** De app gebruikt een licht kleurenschema met warme, aardse tinten — geen donkere mode. Kleuren zijn geïnspireerd door natuur: mos, aarde, zand, hemel en lavendel.
+
+---
+
 ## Kleurenpalet
 
 ### Primaire kleuren
 
 | Naam        | Hex       | Gebruik                              |
 |-------------|-----------|--------------------------------------|
-| **Brand**   | `#FF7043` | CTA-knoppen, highlights, progress    |
-| **Brand Deep** | `#E53935` | Accenten, gradiënten, race sessions |
+| **Brand (Moss)** | `#5A7A52` | CTA-knoppen, highlights, progress |
+| **Brand Deep (Sage)** | `#8AAB7E` | Hover-states, secundaire accenten |
 
-### Achtergronden (donker systeem)
+### Achtergronden (licht, gelaagd)
 
 | Naam              | Hex       | Gebruik                             |
 |-------------------|-----------|-------------------------------------|
-| Canvas            | `#0D0D16` | Scaffold background                 |
-| Surface           | `#14141E` | Cards, bottom sheets                |
-| Surface High      | `#1C1C2A` | Elevated cards, input fields        |
-| Surface Higher    | `#242436` | Modals, dropdowns, tooltips         |
+| Background (Bg)   | `#F7F3EE` | Warme beige canvas / scaffold       |
+| Surface           | `#FFFCF8` | Kaarten, bottom sheets              |
+| Surface High      | `#F0EBE3` | Invoervelden, chips, rijen          |
+| Surface Higher    | `#E8E4DD` | Modals, dropdowns, tooltips         |
 
 ### Randen & dividers
 
 | Naam          | Hex       |
 |---------------|-----------|
-| Outline       | `#2A2A3C` |
-| Outline High  | `#3A3A50` |
+| Outline       | `#E2D9CE` |
+| Outline High  | `#C9BFB3` |
 
 ### Tekst
 
 | Naam      | Hex       | Gebruik                        |
 |-----------|-----------|--------------------------------|
-| On Bg     | `#EEEEF8` | Primaire tekst                 |
-| On Surface| `#CCCCDC` | Secundaire tekst, labels       |
-| Muted     | `#7070A0` | Placeholders, hints, metadata  |
-| Disabled  | `#44445A` | Uitgeschakelde elementen       |
+| On Bg (Ink)       | `#2D2720` | Primaire tekst                 |
+| On Surface (Ink Mid) | `#7A6E64` | Secundaire tekst, labels    |
+| Muted (Ink Light)    | `#A89E93` | Placeholders, hints, metadata |
+| Disabled  | `#C9BFB3` | Uitgeschakelde elementen       |
 
 ### Semantisch
 
-| Naam        | Hex       | Gebruik                         |
-|-------------|-----------|----------------------------------|
-| Success     | `#4CAF82` | Voltooide sessies, hersteld      |
-| Warning     | `#FFC107` | Gemiddelde blessure-ernst (4–6)  |
-| Error       | `#EF5350` | Hoge blessure-ernst (7–10), fouten |
+| Naam        | Hex       | Dim        | Gebruik                          |
+|-------------|-----------|------------|----------------------------------|
+| Success     | `#5A7A52` | `#DEEBD8`  | Voltooide sessies, hersteld     |
+| Warning     | `#C49A5A` | `#F5E8CC`  | Gemiddelde blessure-ernst (4–6) |
+| Error       | `#B85C3A` | `#F5DDD5`  | Hoge blessure-ernst, fouten     |
+
+### Accenten
+
+| Naam       | Hex       | Dim        | Gebruik               |
+|------------|-----------|------------|-----------------------|
+| Terra      | `#B85C3A` | `#F5DDD5`  | Waarschuwing, tempo   |
+| Sand       | `#C49A5A` | `#F5E8CC`  | Informatief, cross    |
+| Sky        | `#4A7FA0` | `#D6E8F5`  | Lange duurloop        |
+| Lavender   | `#7A6AAA` | `#E8E3F5`  | Trail, wandel         |
+| Stone      | `#9E9488` | `#EDE8E2`  | Rustdag, disabled     |
+| Gold       | `#B8862A` | `#F5E8C0`  | Race day, beloning    |
+| Strava     | `#FC4C02` | `#FEE8DF`  | Strava integratie     |
 
 ### Sessie-kleuren
 
-| Type       | Kleur     | Hex       |
-|------------|-----------|-----------|
-| Easy       | Mint      | `#4CAF82` |
-| Tempo      | Oranje    | `#FF7043` |
-| Long       | Blauw     | `#5BA4D4` |
-| Interval   | Rood      | `#EF5350` |
-| Hike       | Paars     | `#B39DDB` |
-| Cross      | Geel      | `#FFCA28` |
-| Race       | Goud      | `#FFD54F` |
-| Rest       | Grijs     | `#6E6E9E` |
+| Type       | Naam      | Hex       | Dim        |
+|------------|-----------|-----------|------------|
+| Easy       | Moss      | `#5A7A52` | `#DEEBD8`  |
+| Tempo      | Terra     | `#B85C3A` | `#F5DDD5`  |
+| Long       | Sky       | `#4A7FA0` | `#D6E8F5`  |
+| Interval   | Intens    | `#C0392B` | `#F5DDD5`  |
+| Hike       | Lavender  | `#7A6AAA` | `#E8E3F5`  |
+| Cross      | Sand      | `#C49A5A` | `#F5E8CC`  |
+| Race       | Gold      | `#B8862A` | `#F5E8C0`  |
+| Rest       | Stone     | `#9E9488` | `#EDE8E2`  |
 
 ---
 
@@ -112,39 +130,39 @@ Voorkeursiconen per functie:
 
 | Type           | Gebruik                              | Kleur          |
 |----------------|--------------------------------------|----------------|
-| `FilledButton` | Primaire CTA (opslaan, volgende)     | Brand orange   |
+| `FilledButton` | Primaire CTA (opslaan, volgende)     | Moss green     |
 | `OutlinedButton`| Secundaire acties, OAuth-knoppen   | Outline border |
-| `TextButton`   | Inline links, navigatie              | Brand orange   |
-| `FloatingActionButton` | Blessure melden             | Brand orange   |
+| `TextButton`   | Inline links, navigatie              | Moss green     |
+| `FloatingActionButton` | Blessure melden             | Moss green     |
 
-Alle knoppen: `borderRadius: 14px`, minimale hoogte `52px`, breedte `double.infinity`.
+Alle knoppen: `borderRadius: 99px` (pill), minimale hoogte `52px`, breedte `double.infinity`.
 
 ### Cards
 
-- Achtergrond: `AppColors.surface`
-- Border: `AppColors.outline` (1px)
-- Border radius: `16–20px`
+- Achtergrond: `AppColors.surface` (`#FFFCF8`)
+- Border: `AppColors.outline` (`#E2D9CE`, 1px)
+- Border radius: `16px`
 - Geen `elevation` (flat design, border als scheiding)
 - Bij selected/active state: border naar accent-kleur
 
 ### Input fields
 
-- Filled style: achtergrond `AppColors.surfaceHigh`
-- Border radius: `12px`
-- Focus border: `AppColors.brand` (2px)
+- Filled style: achtergrond `AppColors.surfaceHigh` (`#F0EBE3`)
+- Border radius: `10px`
+- Focus border: `AppColors.brand` (`#5A7A52`, 2px)
 - Altijd `prefixIcon` waar van toepassing
 
 ### Bottom sheets
 
-- Achtergrond: `AppColors.surfaceHigh`
+- Achtergrond: `AppColors.surface` (`#FFFCF8`)
 - Border radius top: `28px`
 - Drag handle (40×4px, `AppColors.outlineHigh`)
 - Gebruik `DraggableScrollableSheet` voor lange content
 
 ### Badges / Chips
 
-- Border radius: `6–10px`
-- Kleur: accent `withOpacity(.15)` als achtergrond, accent als tekstkleur
+- Border radius: `99px` (pill)
+- Kleur: accent `withValues(alpha: .15)` als achtergrond, accent als tekstkleur
 - Gewicht: 700
 
 ---
@@ -166,7 +184,7 @@ Alle knoppen: `borderRadius: 14px`, minimale hoogte `52px`, breedte `double.infi
 ## Animaties
 
 - **Duur**: 150ms voor micro-interacties (hover, select), 300ms voor transities
-- **Easing**: `Curves.easeInOut`
+- **Easing**: `Curves.easeInOut`, `Curves.easeOutCubic`
 - Gebruik `AnimatedContainer` voor kleur/grootte-overgangen op touch
 - Geen overdreven animaties — zakelijk en snel
 
@@ -176,12 +194,12 @@ Alle knoppen: `borderRadius: 14px`, minimale hoogte `52px`, breedte `double.infi
 
 Het logo bestaat uit twee componenten:
 
-1. **App icon** — vierkant met oranje/rood gradiënt, witte rennende figuur met kuitverband
-2. **Wordmark** — "**Endur**<orange>unce</orange>" in bold (gewicht 800, letter-spacing -1.0)
+1. **App icon** — vierkant met mos-groen/sage gradiënt, witte rennende figuur met kuitverband
+2. **Wordmark** — "**Endur**<moss>unce</moss>" in bold (gewicht 800, letter-spacing -1.0)
 
 ### Gebruik
-- Donkere achtergrond: gebruik standaard wordmark
-- Witte/lichte achtergrond: gebruik `logo-white.svg`
+- Lichte achtergrond: gebruik standaard wordmark
+- Donkere achtergrond: gebruik `logo-white.svg`
 - Minimale grootte icon: 32×32px
 - Minimale clearspace: 8px rondom
 
@@ -196,7 +214,7 @@ De app gebruikt **Material 3 NavigationBar** (bottom) met twee tabs:
 | Training   | `directions_run_outlined` / `directions_run` |
 | Blessures  | `healing_outlined` / `healing`             |
 
-Geselecteerde staat: brand orange indicator + label.
+Geselecteerde staat: moss green indicator + label.
 
 ---
 
@@ -218,7 +236,7 @@ Geselecteerde staat: brand orange indicator + label.
 ## Platform-specifiek
 
 ### Android
-- Status bar: transparant, lichte iconen
+- Status bar: transparant, donkere iconen (licht thema)
 - Navigatiebar: transparant of matcht `AppColors.bg`
 
 ### Web
