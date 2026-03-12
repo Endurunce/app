@@ -69,7 +69,7 @@ class CoachService {
   Future<void> connect(String token) async {
     await _closeChannel();
 
-    final uri = Uri.parse('$_wsBase/ws/coach').replace(
+    final uri = Uri.parse('$_wsBase/api/ws').replace(
       queryParameters: {'token': token},
     );
 
