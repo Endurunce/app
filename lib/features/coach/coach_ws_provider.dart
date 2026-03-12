@@ -74,7 +74,7 @@ class CoachWsNotifier extends Notifier<CoachWsState> {
   @override
   CoachWsState build() => const CoachWsState();
 
-  /// Connect to the coach WebSocket.
+  /// Connect to the coach WebSocket and load conversation history.
   Future<void> connect() async {
     final token = await getToken();
     if (token == null) {
@@ -83,6 +83,25 @@ class CoachWsNotifier extends Notifier<CoachWsState> {
     }
 
     await _cleanup();
+
+    // Load conversation history from backend
+    try {
+      final api = ref.read(apiClientProvider);
+      final history = await api.get('/api/conversations') as List<dynamic>;
+      final messages = history.map<CoachMessage>((m) {
+        _msgCounter++;
+        return CoachMessage(
+          id: '${m['role']}_$_msgCounter',
+          role: m['role'] as String,
+          content: m['content'] as String,
+          createdAt: DateTime.now(),
+        );
+      }).toList();
+      state = state.copyWith(messages: messages, clearError: true);
+    } catch (_) {
+      // History load failed — continue without it
+    }
+
     _service = CoachService();
     _sub = _service!.events.listen(_onEvent);
 
