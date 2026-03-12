@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/endurance_logo.dart';
+import '../../shared/widgets/error_banner.dart';
 import 'auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -14,9 +15,11 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _formKey      = GlobalKey<FormState>();
   final _emailCtrl    = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscure = true;
+  bool _submitted = false;
 
   @override
   void dispose() {
@@ -25,7 +28,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  String? _validateEmail(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Voer een e-mailadres in.';
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(value.trim())) return 'Voer een geldig e-mailadres in.';
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) return 'Voer een wachtwoord in.';
+    if (value.length < 8) return 'Wachtwoord moet minimaal 8 tekens bevatten.';
+    return null;
+  }
+
   Future<void> _login() async {
+    setState(() => _submitted = true);
+    if (!_formKey.currentState!.validate()) return;
     final ok = await ref.read(authProvider.notifier)
         .login(_emailCtrl.text.trim(), _passwordCtrl.text);
     if (ok && mounted) context.go('/plan');
@@ -66,53 +84,61 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: AppColors.outline),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
-                      controller: _emailCtrl,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      style: const TextStyle(color: AppColors.onBg),
-                      decoration: const InputDecoration(
-                        labelText: 'E-mailadres',
-                        prefixIcon: Icon(Icons.mail_outline, size: 20),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    TextField(
-                      controller: _passwordCtrl,
-                      obscureText: _obscure,
-                      onSubmitted: (_) => _login(),
-                      style: const TextStyle(color: AppColors.onBg),
-                      decoration: InputDecoration(
-                        labelText: 'Wachtwoord',
-                        prefixIcon: const Icon(Icons.lock_outline, size: 20),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            size: 20,
-                          ),
-                          onPressed: () => setState(() => _obscure = !_obscure),
+                child: Form(
+                  key: _formKey,
+                  autovalidateMode: _submitted
+                      ? AutovalidateMode.onUserInteraction
+                      : AutovalidateMode.disabled,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextFormField(
+                        controller: _emailCtrl,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        style: const TextStyle(color: AppColors.onBg),
+                        validator: _validateEmail,
+                        decoration: const InputDecoration(
+                          labelText: 'E-mailadres',
+                          prefixIcon: Icon(Icons.mail_outline, size: 20),
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 14),
 
-                    if (auth.error != null) ...[
-                      const SizedBox(height: 12),
-                      _ErrorBanner(auth.error!),
+                      TextFormField(
+                        controller: _passwordCtrl,
+                        obscureText: _obscure,
+                        onFieldSubmitted: (_) => _login(),
+                        validator: _validatePassword,
+                        style: const TextStyle(color: AppColors.onBg),
+                        decoration: InputDecoration(
+                          labelText: 'Wachtwoord',
+                          prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                              size: 20,
+                            ),
+                            onPressed: () => setState(() => _obscure = !_obscure),
+                          ),
+                        ),
+                      ),
+
+                      if (auth.error != null) ...[
+                        const SizedBox(height: 12),
+                        ErrorBanner(auth.error!),
+                      ],
+
+                      const SizedBox(height: 20),
+                      FilledButton(
+                        onPressed: auth.loading ? null : _login,
+                        child: auth.loading
+                            ? const SizedBox(height: 20, width: 20,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                            : const Text('Inloggen'),
+                      ),
                     ],
-
-                    const SizedBox(height: 20),
-                    FilledButton(
-                      onPressed: auth.loading ? null : _login,
-                      child: auth.loading
-                          ? const SizedBox(height: 20, width: 20,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                          : const Text('Inloggen'),
-                    ),
-                  ],
+                  ),
                 ),
               ),
 
@@ -156,29 +182,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-class _ErrorBanner extends StatelessWidget {
-  final String message;
-  const _ErrorBanner(this.message);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.errorDim,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.error.withOpacity(.3)),
-      ),
-      child: Row(children: [
-        const Icon(Icons.error_outline, size: 16, color: AppColors.error),
-        const SizedBox(width: 8),
-        Expanded(child: Text(message,
-            style: const TextStyle(color: AppColors.error, fontSize: 13))),
-      ]),
-    );
-  }
-}
-
 class _Divider extends StatelessWidget {
   final String label;
   const _Divider({required this.label});
@@ -211,7 +214,7 @@ class _SocialButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: accentColor?.withOpacity(.5) ?? AppColors.outline),
+          side: BorderSide(color: accentColor?.withValues(alpha: .5) ?? AppColors.outline),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

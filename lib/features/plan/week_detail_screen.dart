@@ -92,7 +92,7 @@ class _PhaseBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.brand.withOpacity(.15),
+        color: AppColors.brand.withValues(alpha: .15),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(label,
@@ -203,7 +203,7 @@ class _DayCardState extends ConsumerState<_DayCard> {
                               key: const ValueKey('done'),
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
-                                color: AppColors.easy.withOpacity(.15),
+                                color: AppColors.easy.withValues(alpha: .15),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: _uncompleting
@@ -584,9 +584,9 @@ class _AdviceBlock extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color.withOpacity(.08),
+        color: color.withValues(alpha: .08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(.2)),
+        border: Border.all(color: color.withValues(alpha: .2)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -619,9 +619,9 @@ class _SignalCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(.08),
+        color: color.withValues(alpha: .08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(.25)),
+        border: Border.all(color: color.withValues(alpha: .25)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -743,7 +743,7 @@ class _FeedbackFormState extends ConsumerState<_FeedbackForm> {
                     height: 56,
                     decoration: BoxDecoration(
                       color: selected
-                          ? widget.sessionColor.withOpacity(.2)
+                          ? widget.sessionColor.withValues(alpha: .2)
                           : AppColors.surfaceHigh,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(

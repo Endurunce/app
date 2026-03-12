@@ -105,7 +105,7 @@ class _NoPlanViewState extends State<_NoPlanView>
                 Container(
                   width: 80, height: 80,
                   decoration: BoxDecoration(
-                    color: AppColors.brand.withOpacity(.12),
+                    color: AppColors.brand.withValues(alpha: .12),
                     shape: BoxShape.circle,
                   ),
                   child: const Center(
@@ -174,12 +174,12 @@ class _PlanView extends ConsumerWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      AppColors.brand.withOpacity(.14),
+                      AppColors.brand.withValues(alpha: .14),
                       AppColors.surface,
                     ],
                   ),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.brand.withOpacity(.25)),
+                  border: Border.all(color: AppColors.brand.withValues(alpha: .25)),
                 ),
                 child: Row(children: [
                   Expanded(child: Column(
@@ -318,7 +318,7 @@ class _WeekCard extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               border: Border.all(
-                color: isFullyDone ? AppColors.easy.withOpacity(.4) : AppColors.outline,
+                color: isFullyDone ? AppColors.easy.withValues(alpha: .4) : AppColors.outline,
               ),
               borderRadius: BorderRadius.circular(18),
             ),
@@ -377,10 +377,10 @@ class _WeekCard extends StatelessWidget {
                       margin: const EdgeInsets.symmetric(horizontal: 2),
                       height: 40,
                       decoration: BoxDecoration(
-                        color: day.completed ? s.color.withOpacity(.3) : s.bg,
+                        color: day.completed ? s.color.withValues(alpha: .3) : s.bg,
                         borderRadius: BorderRadius.circular(10),
                         border: day.completed
-                            ? Border.all(color: s.color.withOpacity(.6))
+                            ? Border.all(color: s.color.withValues(alpha: .6))
                             : null,
                       ),
                       child: Center(child: Text(s.emoji,
@@ -430,7 +430,7 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(.15),
+        color: color.withValues(alpha: .15),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(label,

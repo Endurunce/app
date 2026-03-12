@@ -2,10 +2,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'dart:html' as html show window; // ignore: avoid_web_libraries_in_flutter
 
-// const _baseUrl = 'http://10.0.2.2:3000'; // Android emulator → localhost
-const _baseUrl = 'https://api.endurunce.nl'; // Production
+import 'web_utils.dart' as web_utils;
+
+const _baseUrl = String.fromEnvironment(
+  'API_URL',
+  defaultValue: 'http://localhost:3000',
+);
 
 final _storage = FlutterSecureStorage();
 
@@ -16,14 +19,7 @@ final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
 /// which causes OperationError from SubtleCrypto.decrypt().
 void _clearWebStorage() {
   if (!kIsWeb) return;
-  try {
-    final keys = html.window.localStorage.keys
-        .where((k) => k.startsWith('FlutterSecureStorage'))
-        .toList();
-    for (final k in keys) {
-      html.window.localStorage.remove(k);
-    }
-  } catch (_) {}
+  web_utils.clearFlutterSecureStorageWeb();
 }
 
 /// Reads the JWT token, returning null on any crypto / storage error.

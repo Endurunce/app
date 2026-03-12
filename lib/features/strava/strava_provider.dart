@@ -3,8 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:html' as html show window; // ignore: avoid_web_libraries_in_flutter
+
 import '../../core/api_client.dart';
+import '../../core/web_utils.dart' as web_utils;
 
 class StravaActivity {
   final String id;
@@ -89,7 +90,10 @@ class StravaNotifier extends Notifier<StravaState> {
   Timer? _pollTimer;
 
   @override
-  StravaState build() => const StravaState();
+  StravaState build() {
+    ref.onDispose(() => _pollTimer?.cancel());
+    return const StravaState();
+  }
 
   Future<void> checkStatus() async {
     state = state.copyWith(loading: true, clearError: true);
@@ -118,7 +122,7 @@ class StravaNotifier extends Notifier<StravaState> {
       final authUrl = data['auth_url'] as String;
 
       if (kIsWeb) {
-        html.window.open(authUrl, '_blank');
+        web_utils.openUrl(authUrl);
       } else {
         await launchUrl(Uri.parse(authUrl), mode: LaunchMode.externalApplication);
       }

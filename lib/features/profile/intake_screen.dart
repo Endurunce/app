@@ -6,6 +6,7 @@ import '../../core/api_client.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/plan/plan_provider.dart';
 import '../../shared/theme/app_theme.dart';
+import '../../shared/utils/age.dart';
 
 class IntakeScreen extends ConsumerStatefulWidget {
   final bool showWelcome;
@@ -31,7 +32,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   // Step 2
   String? _runningYears;
   double  _weeklyKm    = 0;
-  String  _previousUltra = 'none';
+  final String  _previousUltra = 'none';
 
   // Step 3 (optional) — duraties als nullable Duration
   Duration? _time10k;
@@ -97,9 +98,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   /// Herbereken hartslagzones op basis van max/rust HR. Overschrijft alleen als [forceUpdate].
   void _recalcZones({bool forceUpdate = false}) {
     final dob = _dateOfBirth ?? DateTime(DateTime.now().year - 30);
-    final today = DateTime.now();
-    var age = today.year - dob.year;
-    if (today.month < dob.month || (today.month == dob.month && today.day < dob.day)) age--;
+    final age = calculateAge(dob);
     final maxHr  = _hrAuto ? (220 - age) : (int.tryParse(_maxHrCtrl.text) ?? (220 - age));
     final restHr = int.tryParse(_restHrCtrl.text) ?? 55;
     final hrr    = (maxHr - restHr).toDouble();
@@ -121,20 +120,16 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     _nameCtrl.dispose();
     _maxHrCtrl.dispose();
     _restHrCtrl.dispose();
-    for (final c in [..._zoneLoCtrls, ..._zoneHiCtrls]) c.dispose();
+    for (final c in [..._zoneLoCtrls, ..._zoneHiCtrls]) {
+      c.dispose();
+    }
     _complaintsCtrl.dispose();
     super.dispose();
   }
 
   bool get _isUnderSixteen {
     if (_dateOfBirth == null) return false;
-    final today = DateTime.now();
-    var age = today.year - _dateOfBirth!.year;
-    if (today.month < _dateOfBirth!.month ||
-        (today.month == _dateOfBirth!.month && today.day < _dateOfBirth!.day)) {
-      age--;
-    }
-    return age < 16;
+    return calculateAge(_dateOfBirth!) < 16;
   }
 
   String get _dobLabel {
@@ -343,13 +338,9 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     try {
       final client = ref.read(apiClientProvider);
       final dob = _dateOfBirth ?? DateTime(1990);
-      final today = DateTime.now();
-      var age = today.year - dob.year;
-      if (today.month < dob.month || (today.month == dob.month && today.day < dob.day)) age--;
+      final age = calculateAge(dob);
 
       final profile = {
-        'id':             'ffffffff-ffff-ffff-ffff-ffffffffffff',
-        'user_id':        'ffffffff-ffff-ffff-ffff-ffffffffffff',
         'name':           _nameCtrl.text.trim(),
         'date_of_birth':  '${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}',
         'gender':         _gender ?? 'other',
@@ -737,7 +728,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.brand.withOpacity(.15),
+            color: AppColors.brand.withValues(alpha: .15),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text('${_weeklyKm.round()} km/week',
@@ -874,7 +865,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: _raceGoal == 'custom'
-                  ? AppColors.brand.withOpacity(.15)
+                  ? AppColors.brand.withValues(alpha: .15)
                   : AppColors.surfaceHigh,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
@@ -903,7 +894,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColors.brand.withOpacity(.15),
+                color: AppColors.brand.withValues(alpha: .15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text('${(_raceGoalCustomKm ?? 42).round()} km',
@@ -964,9 +955,9 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.brand.withOpacity(.08),
+              color: AppColors.brand.withValues(alpha: .08),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.brand.withOpacity(.25)),
+              border: Border.all(color: AppColors.brand.withValues(alpha: .25)),
             ),
             child: Row(children: [
               const Icon(Icons.preview_outlined, size: 16, color: AppColors.brand),
@@ -1033,7 +1024,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 2),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
-                  color: selected ? AppColors.brand.withOpacity(.2) : AppColors.surfaceHigh,
+                  color: selected ? AppColors.brand.withValues(alpha: .2) : AppColors.surfaceHigh,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: selected ? AppColors.brand : AppColors.outline,
@@ -1073,7 +1064,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.longRun.withOpacity(.15),
+                          color: AppColors.longRun.withValues(alpha: .15),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text('Lange duurloop',
@@ -1194,8 +1185,11 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               final selected = _strengthDays.contains(i);
               return Expanded(child: GestureDetector(
                 onTap: () => setState(() {
-                  if (selected) _strengthDays.remove(i);
-                  else _strengthDays.add(i);
+                  if (selected) {
+                    _strengthDays.remove(i);
+                  } else {
+                    _strengthDays.add(i);
+                  }
                 }),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
@@ -1230,9 +1224,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
 
   Widget _stepHeartrate() {
     final dob = _dateOfBirth ?? DateTime(DateTime.now().year - 30);
-    final today = DateTime.now();
-    var age = today.year - dob.year;
-    if (today.month < dob.month || (today.month == dob.month && today.day < dob.day)) age--;
+    final age = calculateAge(dob);
 
     const zoneNames   = ['Z1 Herstel', 'Z2 Aerobe basis', 'Z3 Aerobe drempel', 'Z4 Anaerobe drempel', 'Z5 VO₂max'];
     const zoneColors  = [Color(0xFF7bc67e), Color(0xFF5a7a52), Color(0xFFc49a5a), Color(0xFFb85c3a), Color(0xFFc0392b)];
@@ -1413,9 +1405,9 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
       Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.easy.withOpacity(.08),
+          color: AppColors.easy.withValues(alpha: .08),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.easy.withOpacity(.3)),
+          border: Border.all(color: AppColors.easy.withValues(alpha: .3)),
         ),
         child: const Row(children: [
           Text('✅', style: TextStyle(fontSize: 20)),
@@ -1454,7 +1446,7 @@ class _MobilityOption extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? AppColors.brand.withOpacity(.12) : AppColors.surfaceHigh,
+          color: selected ? AppColors.brand.withValues(alpha: .12) : AppColors.surfaceHigh,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: selected ? AppColors.brand : AppColors.outline,
@@ -1547,7 +1539,7 @@ class _StepHeader extends StatelessWidget {
         Container(
           width: 52, height: 52,
           decoration: BoxDecoration(
-            color: AppColors.brand.withOpacity(.12),
+            color: AppColors.brand.withValues(alpha: .12),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Center(child: Text(emoji, style: const TextStyle(fontSize: 26))),
@@ -1602,7 +1594,7 @@ class _ChipRow extends StatelessWidget {
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: active ? AppColors.brand.withOpacity(.15) : AppColors.surfaceHigh,
+              color: active ? AppColors.brand.withValues(alpha: .15) : AppColors.surfaceHigh,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: active ? AppColors.brand : AppColors.outline,

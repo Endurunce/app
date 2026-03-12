@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../shared/theme/app_theme.dart';
+import '../../shared/utils/age.dart';
 import '../../shared/widgets/endurance_logo.dart';
+import '../../shared/widgets/error_banner.dart';
+import '../../shared/widgets/gender_chips.dart';
 import 'auth_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -26,6 +29,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   int _phase = 1; // 1 = account, 2 = persoonlijk
 
+  // Form keys
+  final _phase1FormKey = GlobalKey<FormState>();
+  bool _phase1Submitted = false;
+
   @override
   void dispose() {
     _emailCtrl.dispose();
@@ -34,7 +41,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
+  String? _validateEmail(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Voer een e-mailadres in.';
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(value.trim())) return 'Voer een geldig e-mailadres in.';
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) return 'Voer een wachtwoord in.';
+    if (value.length < 8) return 'Wachtwoord moet minimaal 8 tekens bevatten.';
+    return null;
+  }
+
   Future<void> _registerAccount() async {
+    setState(() => _phase1Submitted = true);
+    if (!_phase1FormKey.currentState!.validate()) return;
     final ok = await ref.read(authProvider.notifier)
         .register(_emailCtrl.text.trim(), _passwordCtrl.text);
     if (ok && mounted) {
@@ -44,13 +66,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   bool get _isUnderSixteen {
     if (_dateOfBirth == null) return false;
-    final today = DateTime.now();
-    var age = today.year - _dateOfBirth!.year;
-    if (today.month < _dateOfBirth!.month ||
-        (today.month == _dateOfBirth!.month && today.day < _dateOfBirth!.day)) {
-      age--;
-    }
-    return age < 16;
+    return calculateAge(_dateOfBirth!) < 16;
   }
 
   void _submitPersonal() {
@@ -93,11 +109,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           child: _phase == 1
               ? _Phase1(
                   key: const ValueKey(1),
+                  formKey:      _phase1FormKey,
+                  submitted:    _phase1Submitted,
                   emailCtrl:    _emailCtrl,
                   passwordCtrl: _passwordCtrl,
                   obscure:      _obscure,
                   loading:      auth.loading,
                   error:        auth.error,
+                  validateEmail:    _validateEmail,
+                  validatePassword: _validatePassword,
                   onToggleObscure: () => setState(() => _obscure = !_obscure),
                   onSubmit:     _registerAccount,
                 )
@@ -122,21 +142,29 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 // ── Fase 1: account aanmaken ──────────────────────────────────────────────────
 
 class _Phase1 extends StatelessWidget {
+  final GlobalKey<FormState> formKey;
+  final bool submitted;
   final TextEditingController emailCtrl;
   final TextEditingController passwordCtrl;
   final bool obscure;
   final bool loading;
   final String? error;
+  final String? Function(String?) validateEmail;
+  final String? Function(String?) validatePassword;
   final VoidCallback onToggleObscure;
   final VoidCallback onSubmit;
 
   const _Phase1({
     super.key,
+    required this.formKey,
+    required this.submitted,
     required this.emailCtrl,
     required this.passwordCtrl,
     required this.obscure,
     required this.loading,
     required this.error,
+    required this.validateEmail,
+    required this.validatePassword,
     required this.onToggleObscure,
     required this.onSubmit,
   });
@@ -159,53 +187,61 @@ class _Phase1 extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppColors.outline),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextField(
-                  controller: emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  style: const TextStyle(color: AppColors.onBg),
-                  decoration: const InputDecoration(
-                    labelText: 'E-mailadres',
-                    prefixIcon: Icon(Icons.mail_outline, size: 20),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                TextField(
-                  controller: passwordCtrl,
-                  obscureText: obscure,
-                  onSubmitted: (_) => onSubmit(),
-                  style: const TextStyle(color: AppColors.onBg),
-                  decoration: InputDecoration(
-                    labelText: 'Wachtwoord (min. 8 tekens)',
-                    prefixIcon: const Icon(Icons.lock_outline, size: 20),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        size: 20,
-                      ),
-                      onPressed: onToggleObscure,
+            child: Form(
+              key: formKey,
+              autovalidateMode: submitted
+                  ? AutovalidateMode.onUserInteraction
+                  : AutovalidateMode.disabled,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    controller: emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    style: const TextStyle(color: AppColors.onBg),
+                    validator: validateEmail,
+                    decoration: const InputDecoration(
+                      labelText: 'E-mailadres',
+                      prefixIcon: Icon(Icons.mail_outline, size: 20),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 14),
 
-                if (error != null) ...[
-                  const SizedBox(height: 12),
-                  _ErrorBanner(error!),
+                  TextFormField(
+                    controller: passwordCtrl,
+                    obscureText: obscure,
+                    onFieldSubmitted: (_) => onSubmit(),
+                    validator: validatePassword,
+                    style: const TextStyle(color: AppColors.onBg),
+                    decoration: InputDecoration(
+                      labelText: 'Wachtwoord (min. 8 tekens)',
+                      prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          size: 20,
+                        ),
+                        onPressed: onToggleObscure,
+                      ),
+                    ),
+                  ),
+
+                  if (error != null) ...[
+                    const SizedBox(height: 12),
+                    ErrorBanner(error!),
+                  ],
+
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed: loading ? null : onSubmit,
+                    child: loading
+                        ? const SizedBox(height: 20, width: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                        : const Text('Volgende'),
+                  ),
                 ],
-
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: loading ? null : onSubmit,
-                  child: loading
-                      ? const SizedBox(height: 20, width: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                      : const Text('Volgende'),
-                ),
-              ],
+              ),
             ),
           ),
 
@@ -343,7 +379,7 @@ class _Phase2 extends StatelessWidget {
                 Text('Geslacht',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1)),
                 const SizedBox(height: 10),
-                _GenderChips(selected: gender, onSelect: onGenderSelect),
+                GenderChips(selected: gender, onSelect: onGenderSelect),
 
                 const SizedBox(height: 24),
                 FilledButton.icon(
@@ -357,52 +393,6 @@ class _Phase2 extends StatelessWidget {
           const SizedBox(height: 32),
         ],
       ),
-    );
-  }
-}
-
-class _GenderChips extends StatelessWidget {
-  final String? selected;
-  final ValueChanged<String> onSelect;
-  const _GenderChips({required this.selected, required this.onSelect});
-
-  @override
-  Widget build(BuildContext context) {
-    const options = [('male', 'Man'), ('female', 'Vrouw'), ('other', 'Anders')];
-    return Row(
-      children: options.map((o) {
-        final isSelected = selected == o.$1;
-        return Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: FilterChip(
-            label: Text(o.$2),
-            selected: isSelected,
-            onSelected: (_) => onSelect(o.$1),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _ErrorBanner extends StatelessWidget {
-  final String message;
-  const _ErrorBanner(this.message);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.errorDim,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.error.withValues(alpha: .4)),
-      ),
-      child: Row(children: [
-        const Icon(Icons.error_outline, color: AppColors.error, size: 16),
-        const SizedBox(width: 8),
-        Expanded(child: Text(message, style: const TextStyle(color: AppColors.error, fontSize: 13))),
-      ]),
     );
   }
 }
