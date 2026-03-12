@@ -737,7 +737,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.brand.withOpacity(.15),
+            color: AppColors.brand.withValues(alpha: .15),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text('${_weeklyKm.round()} km/week',
@@ -874,7 +874,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: _raceGoal == 'custom'
-                  ? AppColors.brand.withOpacity(.15)
+                  ? AppColors.brand.withValues(alpha: .15)
                   : AppColors.surfaceHigh,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
@@ -903,7 +903,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColors.brand.withOpacity(.15),
+                color: AppColors.brand.withValues(alpha: .15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text('${(_raceGoalCustomKm ?? 42).round()} km',
@@ -964,9 +964,9 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.brand.withOpacity(.08),
+              color: AppColors.brand.withValues(alpha: .08),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.brand.withOpacity(.25)),
+              border: Border.all(color: AppColors.brand.withValues(alpha: .25)),
             ),
             child: Row(children: [
               const Icon(Icons.preview_outlined, size: 16, color: AppColors.brand),
@@ -1033,7 +1033,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 2),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
-                  color: selected ? AppColors.brand.withOpacity(.2) : AppColors.surfaceHigh,
+                  color: selected ? AppColors.brand.withValues(alpha: .2) : AppColors.surfaceHigh,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: selected ? AppColors.brand : AppColors.outline,
@@ -1073,7 +1073,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.longRun.withOpacity(.15),
+                          color: AppColors.longRun.withValues(alpha: .15),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text('Lange duurloop',
@@ -1413,9 +1413,9 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
       Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.easy.withOpacity(.08),
+          color: AppColors.easy.withValues(alpha: .08),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.easy.withOpacity(.3)),
+          border: Border.all(color: AppColors.easy.withValues(alpha: .3)),
         ),
         child: const Row(children: [
           Text('✅', style: TextStyle(fontSize: 20)),
@@ -1454,7 +1454,7 @@ class _MobilityOption extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? AppColors.brand.withOpacity(.12) : AppColors.surfaceHigh,
+          color: selected ? AppColors.brand.withValues(alpha: .12) : AppColors.surfaceHigh,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: selected ? AppColors.brand : AppColors.outline,
@@ -1547,7 +1547,7 @@ class _StepHeader extends StatelessWidget {
         Container(
           width: 52, height: 52,
           decoration: BoxDecoration(
-            color: AppColors.brand.withOpacity(.12),
+            color: AppColors.brand.withValues(alpha: .12),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Center(child: Text(emoji, style: const TextStyle(fontSize: 26))),
@@ -1602,7 +1602,7 @@ class _ChipRow extends StatelessWidget {
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: active ? AppColors.brand.withOpacity(.15) : AppColors.surfaceHigh,
+              color: active ? AppColors.brand.withValues(alpha: .15) : AppColors.surfaceHigh,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: active ? AppColors.brand : AppColors.outline,

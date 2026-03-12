@@ -99,7 +99,7 @@ class _TipCard extends StatelessWidget {
             Container(
               width: 48, height: 48,
               decoration: BoxDecoration(
-                color: AppColors.brand.withOpacity(.10),
+                color: AppColors.brand.withValues(alpha: .10),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Center(

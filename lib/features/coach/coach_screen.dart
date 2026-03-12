@@ -194,7 +194,7 @@ class _TypingBubbleState extends State<_TypingBubble>
           Container(
             width: 32, height: 32,
             decoration: BoxDecoration(
-              color: AppColors.brand.withOpacity(.15),
+              color: AppColors.brand.withValues(alpha: .15),
               shape: BoxShape.circle,
             ),
             child: const Center(child: Text('🤖', style: TextStyle(fontSize: 16))),
@@ -311,7 +311,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                 Container(
                   width: 32, height: 32,
                   decoration: BoxDecoration(
-                    color: AppColors.brand.withOpacity(.15),
+                    color: AppColors.brand.withValues(alpha: .15),
                     shape: BoxShape.circle,
                   ),
                   child: const Center(
@@ -325,7 +325,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
                     color: isUser
-                        ? AppColors.brand.withOpacity(.2)
+                        ? AppColors.brand.withValues(alpha: .2)
                         : AppColors.surfaceHigh,
                     borderRadius: BorderRadius.only(
                       topLeft:     const Radius.circular(16),
@@ -335,7 +335,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                     ),
                     border: Border.all(
                       color: isUser
-                          ? AppColors.brand.withOpacity(.3)
+                          ? AppColors.brand.withValues(alpha: .3)
                           : AppColors.outline,
                     ),
                   ),
@@ -355,7 +355,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                             p:          const TextStyle(fontSize: 14, color: AppColors.onBg, height: 1.5),
                             strong:     const TextStyle(fontSize: 14, color: AppColors.onBg, fontWeight: FontWeight.w700),
                             em:         const TextStyle(fontSize: 14, color: AppColors.onBg, fontStyle: FontStyle.italic),
-                            code:       TextStyle(fontSize: 13, color: AppColors.brand, backgroundColor: AppColors.brand.withOpacity(.08), fontFamily: 'monospace'),
+                            code:       TextStyle(fontSize: 13, color: AppColors.brand, backgroundColor: AppColors.brand.withValues(alpha: .08), fontFamily: 'monospace'),
                             codeblockDecoration: BoxDecoration(
                               color: AppColors.surface,
                               borderRadius: BorderRadius.circular(8),
@@ -366,7 +366,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                             listBullet: const TextStyle(fontSize: 14, color: AppColors.brand),
                             blockquoteDecoration: BoxDecoration(
                               border: Border(left: BorderSide(color: AppColors.brand, width: 3)),
-                              color: AppColors.brand.withOpacity(.05),
+                              color: AppColors.brand.withValues(alpha: .05),
                             ),
                             blockquotePadding: const EdgeInsets.fromLTRB(12, 4, 8, 4),
                           ),
@@ -583,7 +583,7 @@ class _EmptyState extends StatelessWidget {
             Container(
               width: 72, height: 72,
               decoration: BoxDecoration(
-                color: AppColors.brand.withOpacity(.12),
+                color: AppColors.brand.withValues(alpha: .12),
                 shape: BoxShape.circle,
               ),
               child: const Center(child: Text('🤖', style: TextStyle(fontSize: 36))),

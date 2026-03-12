@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
-import 'dart:html' as html show window; // ignore: avoid_web_libraries_in_flutter
+
 import '../../core/api_client.dart';
+import '../../core/web_utils.dart' as web_utils;
 
 class AuthState {
   final String?   token;
@@ -121,7 +122,7 @@ class AuthNotifier extends Notifier<AuthState> {
       final authUrl = data['auth_url'] as String;
 
       if (kIsWeb) {
-        html.window.location.href = authUrl;
+        web_utils.setLocationHref(authUrl);
         return false;
       }
 
@@ -160,7 +161,7 @@ class AuthNotifier extends Notifier<AuthState> {
       final authUrl = data['auth_url'] as String;
 
       if (kIsWeb) {
-        html.window.location.href = authUrl;
+        web_utils.setLocationHref(authUrl);
         return false;
       }
 

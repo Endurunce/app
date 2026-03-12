@@ -23,7 +23,7 @@ class EnduranceLogo extends StatelessWidget {
             borderRadius: BorderRadius.circular(iconSize * 0.22),
             boxShadow: [
               BoxShadow(
-                color: AppColors.brand.withOpacity(.35),
+                color: AppColors.brand.withValues(alpha: .35),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -118,7 +118,7 @@ class _RunnerPainter extends CustomPainter {
     // Calf bandage
     p
       ..strokeWidth = w * 0.055
-      ..color = Colors.white.withOpacity(.8);
+      ..color = Colors.white.withValues(alpha: .8);
     canvas.drawLine(
       Offset(w * 0.545, h * 0.735),
       Offset(w * 0.575, h * 0.695),

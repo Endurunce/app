@@ -177,7 +177,7 @@ class _HistoryCard extends StatelessWidget {
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(
-                  color: _severityColor.withOpacity(.12),
+                  color: _severityColor.withValues(alpha: .12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
@@ -203,7 +203,7 @@ class _HistoryCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: resolvedColor.withOpacity(.12),
+                  color: resolvedColor.withValues(alpha: .12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(resolvedLabel,
@@ -251,7 +251,7 @@ class _EmptyActive extends StatelessWidget {
           Container(
             width: 80, height: 80,
             decoration: BoxDecoration(
-              color: AppColors.easy.withOpacity(.12),
+              color: AppColors.easy.withValues(alpha: .12),
               shape: BoxShape.circle,
             ),
             child: const Center(
@@ -291,7 +291,7 @@ class _InjuryCard extends ConsumerWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: severityColor.withOpacity(.25)),
+          border: Border.all(color: severityColor.withValues(alpha: .25)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,7 +300,7 @@ class _InjuryCard extends ConsumerWidget {
               Container(
                 width: 52, height: 52,
                 decoration: BoxDecoration(
-                  color: severityColor.withOpacity(.12),
+                  color: severityColor.withValues(alpha: .12),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Center(
@@ -348,7 +348,7 @@ class _InjuryCard extends ConsumerWidget {
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.easy,
-                side: BorderSide(color: AppColors.easy.withOpacity(.4)),
+                side: BorderSide(color: AppColors.easy.withValues(alpha: .4)),
                 minimumSize: const Size(double.infinity, 44),
               ),
               icon: const Icon(Icons.check_circle_outline, size: 18),
@@ -550,7 +550,7 @@ class _ReportInjurySheetState extends ConsumerState<_ReportInjurySheet> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _severityColor.withOpacity(.15),
+                    color: _severityColor.withValues(alpha: .15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text('$_severity / 10',
@@ -674,7 +674,7 @@ class _MobilityOption extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? AppColors.easy.withOpacity(.12) : AppColors.surfaceHigh,
+          color: selected ? AppColors.easy.withValues(alpha: .12) : AppColors.surfaceHigh,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: selected ? AppColors.easy : AppColors.outline,
@@ -721,7 +721,7 @@ class _ChipRowSingle extends StatelessWidget {
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: active ? AppColors.brand.withOpacity(.15) : AppColors.surfaceHigh,
+              color: active ? AppColors.brand.withValues(alpha: .15) : AppColors.surfaceHigh,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: active ? AppColors.brand : AppColors.outline,
