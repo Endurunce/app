@@ -49,7 +49,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ?? 'Hardloper';
 
     return Scaffold(
-      body: CustomScrollView(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: CustomScrollView(
         slivers: [
           // ── App bar / header ──────────────────────────────────────────────
           SliverAppBar(
@@ -272,6 +275,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
         ],
+      ),
+        ),
       ),
     );
   }

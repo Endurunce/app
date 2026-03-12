@@ -23,7 +23,7 @@ jobs:
         run: flutter pub get
 
       - name: Build web
-        run: flutter build web --release --base-href "/"
+        run: flutter build web --release --base-href "/" --dart-define=API_URL=https://api.endurunce.nl
 
       - name: Set up flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master

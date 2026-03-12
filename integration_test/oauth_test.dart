@@ -9,7 +9,7 @@ import 'package:endurance_app/main.dart' as app;
 
 import 'helpers.dart';
 
-const _apiBase = 'api.endurunce.nl';
+const _apiBase = String.fromEnvironment('API_URL', defaultValue: 'http://localhost:3000');
 
 /// Roept de backend test-endpoint aan en geeft een OAuth session_id terug.
 /// Vereist TEST_MODE=true op de server.
@@ -17,7 +17,7 @@ Future<String> _createTestOAuthSession() async {
   final client = HttpClient();
   try {
     final req = await client.postUrl(
-      Uri.https(_apiBase, '/api/test/oauth-session'),
+      Uri.parse('$_apiBase/api/test/oauth-session'),
     );
     req.headers.set('content-type', 'application/json');
     final resp = await req.close();

@@ -67,7 +67,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(24, 0, 24, bottomInset + 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -175,6 +178,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 24),
             ],
+          ),
+        ),
           ),
         ),
       ),

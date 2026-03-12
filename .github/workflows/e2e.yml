@@ -48,7 +48,6 @@ jobs:
       - name: E2E — Intake
         env:
           DISPLAY: :99
-        continue-on-error: true
         run: |
           flutter drive \
             --driver=test_driver/integration_test.dart \
@@ -58,7 +57,6 @@ jobs:
       - name: E2E — Plan
         env:
           DISPLAY: :99
-        continue-on-error: true
         run: |
           flutter drive \
             --driver=test_driver/integration_test.dart \
@@ -68,7 +66,6 @@ jobs:
       - name: E2E — Sessie
         env:
           DISPLAY: :99
-        continue-on-error: true
         run: |
           flutter drive \
             --driver=test_driver/integration_test.dart \
@@ -78,7 +75,6 @@ jobs:
       - name: E2E — Coach
         env:
           DISPLAY: :99
-        continue-on-error: true
         run: |
           flutter drive \
             --driver=test_driver/integration_test.dart \
@@ -88,9 +84,12 @@ jobs:
       - name: E2E — Blessures
         env:
           DISPLAY: :99
-        continue-on-error: true
         run: |
           flutter drive \
             --driver=test_driver/integration_test.dart \
             --target=integration_test/injury_test.dart \
             -d chrome
+
+      - name: Summary
+        if: always()
+        run: echo "✅ All E2E tests completed."

@@ -171,7 +171,10 @@ class _Phase1 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -259,6 +262,8 @@ class _Phase1 extends StatelessWidget {
           const SizedBox(height: 24),
         ],
       ),
+    ),
+      ),
     );
   }
 }
@@ -309,7 +314,10 @@ class _Phase2 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -392,6 +400,8 @@ class _Phase2 extends StatelessWidget {
           ),
           const SizedBox(height: 32),
         ],
+      ),
+    ),
       ),
     );
   }
