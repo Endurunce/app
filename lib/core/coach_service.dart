@@ -4,11 +4,16 @@ import 'dart:convert';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 // ── WebSocket URL ──────────────────────────────────────────────────────────────
+// Derives from API_URL: https://x → wss://x, http://x → ws://x
 
-const _wsBase = String.fromEnvironment(
-  'WS_URL',
-  defaultValue: 'ws://localhost:3000',
+const _apiUrl = String.fromEnvironment(
+  'API_URL',
+  defaultValue: 'http://localhost:3000',
 );
+
+final String _wsBase = _apiUrl
+    .replaceFirst('https://', 'wss://')
+    .replaceFirst('http://', 'ws://');
 
 // ── Event types from the agent ─────────────────────────────────────────────────
 
