@@ -6,6 +6,7 @@ import '../../core/api_client.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/plan/plan_provider.dart';
 import '../../shared/theme/app_theme.dart';
+import '../../shared/utils/age.dart';
 
 class IntakeScreen extends ConsumerStatefulWidget {
   final bool showWelcome;
@@ -31,7 +32,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   // Step 2
   String? _runningYears;
   double  _weeklyKm    = 0;
-  String  _previousUltra = 'none';
+  final String  _previousUltra = 'none';
 
   // Step 3 (optional) — duraties als nullable Duration
   Duration? _time10k;
@@ -97,9 +98,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   /// Herbereken hartslagzones op basis van max/rust HR. Overschrijft alleen als [forceUpdate].
   void _recalcZones({bool forceUpdate = false}) {
     final dob = _dateOfBirth ?? DateTime(DateTime.now().year - 30);
-    final today = DateTime.now();
-    var age = today.year - dob.year;
-    if (today.month < dob.month || (today.month == dob.month && today.day < dob.day)) age--;
+    final age = calculateAge(dob);
     final maxHr  = _hrAuto ? (220 - age) : (int.tryParse(_maxHrCtrl.text) ?? (220 - age));
     final restHr = int.tryParse(_restHrCtrl.text) ?? 55;
     final hrr    = (maxHr - restHr).toDouble();
@@ -121,20 +120,16 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     _nameCtrl.dispose();
     _maxHrCtrl.dispose();
     _restHrCtrl.dispose();
-    for (final c in [..._zoneLoCtrls, ..._zoneHiCtrls]) c.dispose();
+    for (final c in [..._zoneLoCtrls, ..._zoneHiCtrls]) {
+      c.dispose();
+    }
     _complaintsCtrl.dispose();
     super.dispose();
   }
 
   bool get _isUnderSixteen {
     if (_dateOfBirth == null) return false;
-    final today = DateTime.now();
-    var age = today.year - _dateOfBirth!.year;
-    if (today.month < _dateOfBirth!.month ||
-        (today.month == _dateOfBirth!.month && today.day < _dateOfBirth!.day)) {
-      age--;
-    }
-    return age < 16;
+    return calculateAge(_dateOfBirth!) < 16;
   }
 
   String get _dobLabel {
@@ -343,13 +338,9 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     try {
       final client = ref.read(apiClientProvider);
       final dob = _dateOfBirth ?? DateTime(1990);
-      final today = DateTime.now();
-      var age = today.year - dob.year;
-      if (today.month < dob.month || (today.month == dob.month && today.day < dob.day)) age--;
+      final age = calculateAge(dob);
 
       final profile = {
-        'id':             'ffffffff-ffff-ffff-ffff-ffffffffffff',
-        'user_id':        'ffffffff-ffff-ffff-ffff-ffffffffffff',
         'name':           _nameCtrl.text.trim(),
         'date_of_birth':  '${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}',
         'gender':         _gender ?? 'other',
@@ -1194,8 +1185,11 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               final selected = _strengthDays.contains(i);
               return Expanded(child: GestureDetector(
                 onTap: () => setState(() {
-                  if (selected) _strengthDays.remove(i);
-                  else _strengthDays.add(i);
+                  if (selected) {
+                    _strengthDays.remove(i);
+                  } else {
+                    _strengthDays.add(i);
+                  }
                 }),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
@@ -1230,9 +1224,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
 
   Widget _stepHeartrate() {
     final dob = _dateOfBirth ?? DateTime(DateTime.now().year - 30);
-    final today = DateTime.now();
-    var age = today.year - dob.year;
-    if (today.month < dob.month || (today.month == dob.month && today.day < dob.day)) age--;
+    final age = calculateAge(dob);
 
     const zoneNames   = ['Z1 Herstel', 'Z2 Aerobe basis', 'Z3 Aerobe drempel', 'Z4 Anaerobe drempel', 'Z5 VO₂max'];
     const zoneColors  = [Color(0xFF7bc67e), Color(0xFF5a7a52), Color(0xFFc49a5a), Color(0xFFb85c3a), Color(0xFFc0392b)];
