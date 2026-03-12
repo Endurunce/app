@@ -3,8 +3,20 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../shared/theme/app_theme.dart';
-import '../../shared/widgets/shimmer.dart';
-import 'coach_provider.dart';
+import 'coach_ws_provider.dart';
+
+// ── Tool name → Dutch display label ────────────────────────────────────────────
+
+String _toolLabel(String toolName) => switch (toolName) {
+  'get_active_plan'   => '📊 Trainingsplan bekijken...',
+  'update_plan'       => '✏️ Plan aanpassen...',
+  'get_profile'       => '👤 Profiel ophalen...',
+  'get_injuries'      => '🩹 Blessures bekijken...',
+  'get_strava_data'   => '🏃 Strava data ophalen...',
+  _                   => '⚙️ $toolName...',
+};
+
+// ── Screen ─────────────────────────────────────────────────────────────────────
 
 class CoachScreen extends ConsumerStatefulWidget {
   const CoachScreen({super.key});
@@ -26,13 +38,14 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(coachProvider.notifier).load());
+    Future.microtask(() => ref.read(coachWsProvider.notifier).connect());
   }
 
   @override
   void dispose() {
     _inputCtrl.dispose();
     _scrollCtrl.dispose();
+    ref.read(coachWsProvider.notifier).disconnect();
     super.dispose();
   }
 
@@ -41,41 +54,45 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
       if (_scrollCtrl.hasClients) {
         _scrollCtrl.animateTo(
           _scrollCtrl.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
         );
       }
     });
   }
 
-  Future<void> _send(String text) async {
+  void _send(String text) {
     if (text.trim().isEmpty) return;
     _inputCtrl.clear();
-    await ref.read(coachProvider.notifier).send(text);
+    ref.read(coachWsProvider.notifier).send(text);
     _scrollToBottom();
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(coachProvider);
+    final state = ref.watch(coachWsProvider);
 
-    if (state.messages.isNotEmpty || state.sending) _scrollToBottom();
+    // Auto-scroll whenever messages change or streaming
+    if (state.messages.isNotEmpty || state.thinking) _scrollToBottom();
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('Coach'),
         actions: [
-          if (state.loading)
-            const Padding(
-              padding: EdgeInsets.only(right: 16),
-              child: Center(
-                child: SizedBox(
-                  width: 18, height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+          // Connection indicator
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: Container(
+                width: 8, height: 8,
+                decoration: BoxDecoration(
+                  color: state.connected ? AppColors.brand : AppColors.muted,
+                  shape: BoxShape.circle,
                 ),
               ),
             ),
+          ),
         ],
       ),
       body: Column(
@@ -102,36 +119,39 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
 
           // Messages list
           Expanded(
-            child: state.loading && state.messages.isEmpty
-                ? const _LoadingSkeleton()
-                : state.error != null && state.messages.isEmpty
-                    ? _ErrorState(
-                        message: state.error!,
-                        onRetry: () => ref.read(coachProvider.notifier).load(),
-                      )
-                    : state.messages.isEmpty && !state.sending
-                        ? const _EmptyState()
-                        : ListView.builder(
-                            controller: _scrollCtrl,
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                            // +1 for typing bubble when sending
-                            itemCount: state.messages.length + (state.sending ? 1 : 0),
-                            itemBuilder: (ctx, i) {
-                              if (i == state.messages.length) {
-                                // Typing indicator at the end
-                                return const _TypingBubble();
-                              }
-                              return _MessageBubble(message: state.messages[i]);
-                            },
-                          ),
+            child: state.messages.isEmpty && !state.thinking
+                ? const _EmptyState()
+                : ListView.builder(
+                    controller: _scrollCtrl,
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    itemCount: state.messages.length
+                        + (state.activeTool != null ? 1 : 0)
+                        + (state.thinking ? 1 : 0),
+                    itemBuilder: (ctx, i) {
+                      // Message bubbles
+                      if (i < state.messages.length) {
+                        return _MessageBubble(message: state.messages[i]);
+                      }
+
+                      final extraIndex = i - state.messages.length;
+
+                      // Tool use indicator
+                      if (state.activeTool != null && extraIndex == 0) {
+                        return _ToolIndicator(toolName: state.activeTool!);
+                      }
+
+                      // Thinking indicator
+                      return const _TypingBubble();
+                    },
+                  ),
           ),
 
           // Quick suggestions when < 3 messages
-          if (state.messages.length < 3 && !state.loading)
+          if (state.messages.length < 3)
             _SuggestionBar(suggestions: _suggestions, onTap: _send),
 
-          // Error banner when sending fails but there are already messages
-          if (state.error != null && state.messages.isNotEmpty)
+          // Error banner
+          if (state.error != null)
             Container(
               width: double.infinity,
               color: AppColors.errorDim,
@@ -146,8 +166,42 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
           // Input bar
           _InputBar(
             controller: _inputCtrl,
-            sending: state.sending,
+            sending: state.thinking,
             onSend: _send,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Tool use indicator ─────────────────────────────────────────────────────────
+
+class _ToolIndicator extends StatelessWidget {
+  final String toolName;
+  const _ToolIndicator({required this.toolName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, left: 40),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 14, height: 14,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.brand.withValues(alpha: .6),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _toolLabel(toolName),
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.muted,
+              fontStyle: FontStyle.italic,
+            ),
           ),
         ],
       ),
@@ -230,7 +284,6 @@ class _Dot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Each dot starts its bounce at a different offset
     final delay = index / 3.0;
     final animation = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: -6.0), weight: 25),
@@ -365,7 +418,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                             h3:         const TextStyle(fontSize: 14, color: AppColors.onBg, fontWeight: FontWeight.w600),
                             listBullet: const TextStyle(fontSize: 14, color: AppColors.brand),
                             blockquoteDecoration: BoxDecoration(
-                              border: Border(left: BorderSide(color: AppColors.brand, width: 3)),
+                              border: const Border(left: BorderSide(color: AppColors.brand, width: 3)),
                               color: AppColors.brand.withValues(alpha: .05),
                             ),
                             blockquotePadding: const EdgeInsets.fromLTRB(12, 4, 8, 4),
@@ -531,42 +584,6 @@ class _InputBarState extends State<_InputBar> {
   }
 }
 
-// ── Loading skeleton ───────────────────────────────────────────────────────────
-
-class _LoadingSkeleton extends StatelessWidget {
-  const _LoadingSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      children: [
-        _SkeletonBubble(isUser: false, width: 240),
-        const SizedBox(height: 12),
-        _SkeletonBubble(isUser: true, width: 160),
-        const SizedBox(height: 12),
-        _SkeletonBubble(isUser: false, width: 280),
-        const SizedBox(height: 12),
-        _SkeletonBubble(isUser: false, width: 200),
-      ],
-    );
-  }
-}
-
-class _SkeletonBubble extends StatelessWidget {
-  final bool isUser;
-  final double width;
-  const _SkeletonBubble({required this.isUser, required this.width});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-      children: [Shimmer(width: width, height: 40, borderRadius: 14)],
-    );
-  }
-}
-
 // ── Empty state ────────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
@@ -597,39 +614,6 @@ class _EmptyState extends StatelessWidget {
               'Stel me vragen over je training, herstel of race-strategie. Ik gebruik je profiel en trainingsdata als context.',
               style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Error state ────────────────────────────────────────────────────────────────
-
-class _ErrorState extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-  const _ErrorState({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.cloud_off_rounded, color: AppColors.muted, size: 48),
-            const SizedBox(height: 16),
-            Text(message,
-                style: Theme.of(context).textTheme.bodyMedium,
-                textAlign: TextAlign.center),
-            const SizedBox(height: 20),
-            OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Opnieuw proberen'),
             ),
           ],
         ),
