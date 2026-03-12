@@ -11,7 +11,7 @@ import '../features/plan/week_detail_screen.dart';
 import '../features/injury/injury_screen.dart';
 import '../features/coach/coach_screen.dart';
 import '../features/tips/tips_screen.dart';
-import '../features/profile/intake_screen.dart';
+import '../features/profile/intake/intake_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../shared/widgets/main_shell.dart';
 
