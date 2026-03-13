@@ -11,7 +11,8 @@ import '../features/plan/week_detail_screen.dart';
 import '../features/injury/injury_screen.dart';
 import '../features/coach/coach_screen.dart';
 import '../features/tips/tips_screen.dart';
-import '../features/profile/intake/intake_screen.dart';
+// Old intake form (kept for reference)
+// import '../features/profile/intake/intake_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../shared/widgets/main_shell.dart';
 
@@ -89,8 +90,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/intake',
         pageBuilder: (ctx, state) {
-          final isNew = state.extra == true;
-          return _slidePage(ctx, state, IntakeScreen(showWelcome: isNew));
+          // New conversational intake via coach screen
+          return _slidePage(ctx, state, const CoachScreen(startIntake: true));
         },
       ),
 
