@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/coach_service.dart';
-import '../../../shared/theme/app_theme.dart';
+import '../../theme/app_theme.dart';
+import 'chat_view.dart';
 
 /// Renders the appropriate input widget based on [inputType]:
 /// - chips / null: horizontal scrollable single-select chips

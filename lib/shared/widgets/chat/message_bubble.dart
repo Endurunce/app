@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
-import '../../../shared/theme/app_theme.dart';
-import '../coach_ws_provider.dart';
+import '../../theme/app_theme.dart';
+import 'chat_view.dart';
 
 class MessageBubble extends StatefulWidget {
-  final CoachMessage message;
+  final ChatMessage message;
   const MessageBubble({super.key, required this.message});
 
   @override

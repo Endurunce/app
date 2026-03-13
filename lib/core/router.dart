@@ -9,10 +9,10 @@ import '../features/auth/register_screen.dart';
 import '../features/plan/plan_screen.dart';
 import '../features/plan/week_detail_screen.dart';
 import '../features/injury/injury_screen.dart';
+import '../features/injuries/injury_chat_screen.dart';
 import '../features/coach/coach_screen.dart';
+import '../features/profile/intake/intake_chat_screen.dart';
 import '../features/tips/tips_screen.dart';
-// Old intake form (kept for reference)
-// import '../features/profile/intake/intake_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../shared/widgets/main_shell.dart';
 
@@ -89,10 +89,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/intake',
-        pageBuilder: (ctx, state) {
-          // New conversational intake via coach screen
-          return _slidePage(ctx, state, const CoachScreen(startIntake: true));
-        },
+        pageBuilder: (ctx, state) =>
+            _slidePage(ctx, state, const IntakeChatScreen()),
+      ),
+      GoRoute(
+        path: '/injury-report',
+        pageBuilder: (ctx, state) =>
+            _slidePage(ctx, state, const InjuryChatScreen()),
       ),
 
       // Main shell with bottom nav

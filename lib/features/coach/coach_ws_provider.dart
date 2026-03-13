@@ -3,43 +3,22 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api_client.dart';
-import '../../core/coach_service.dart';
+import '../../core/coach_service.dart' as ws;
+import '../../shared/widgets/chat/chat_view.dart';
 import '../plan/plan_provider.dart';
 
-// ── Models ─────────────────────────────────────────────────────────────────────
-
-class CoachMessage {
-  final String id;
-  final String role; // 'user' | 'assistant'
-  final String content;
-  final DateTime createdAt;
-
-  const CoachMessage({
-    required this.id,
-    required this.role,
-    required this.content,
-    required this.createdAt,
-  });
-
-  CoachMessage copyWith({String? content}) => CoachMessage(
-    id: id,
-    role: role,
-    content: content ?? this.content,
-    createdAt: createdAt,
-  );
-}
+// Re-export ChatMessage and QuickReplyOption for consumers
+export '../../shared/widgets/chat/chat_view.dart' show ChatMessage, QuickReplyOption;
 
 // ── State ──────────────────────────────────────────────────────────────────────
 
 class CoachWsState {
-  final List<CoachMessage> messages;
+  final List<ChatMessage> messages;
   final bool connected;
   final bool thinking;          // agent is processing (between user msg and first delta)
   final String? activeTool;     // tool currently being used by agent
   final String? error;
-  final List<QuickReplyOption>? quickReplies;
-  final String? quickReplyQuestionId;
-  final String? quickReplyInputType;  // chips, multi_chips, date_picker, number, duration_picker, text
+  final QuickReplyState? quickReplyState;
   final bool intakeActive;      // whether the intake flow is running
 
   const CoachWsState({
@@ -48,43 +27,37 @@ class CoachWsState {
     this.thinking = false,
     this.activeTool,
     this.error,
-    this.quickReplies,
-    this.quickReplyQuestionId,
-    this.quickReplyInputType,
+    this.quickReplyState,
     this.intakeActive = false,
   });
 
   CoachWsState copyWith({
-    List<CoachMessage>? messages,
+    List<ChatMessage>? messages,
     bool? connected,
     bool? thinking,
     String? activeTool,
     bool clearTool = false,
     String? error,
     bool clearError = false,
-    List<QuickReplyOption>? quickReplies,
+    QuickReplyState? quickReplyState,
     bool clearQuickReplies = false,
-    String? quickReplyQuestionId,
-    String? quickReplyInputType,
     bool? intakeActive,
   }) => CoachWsState(
-    messages:             messages             ?? this.messages,
-    connected:            connected            ?? this.connected,
-    thinking:             thinking             ?? this.thinking,
-    activeTool:           clearTool ? null : (activeTool ?? this.activeTool),
-    error:                clearError ? null : (error ?? this.error),
-    quickReplies:         clearQuickReplies ? null : (quickReplies ?? this.quickReplies),
-    quickReplyQuestionId: clearQuickReplies ? null : (quickReplyQuestionId ?? this.quickReplyQuestionId),
-    quickReplyInputType:  clearQuickReplies ? null : (quickReplyInputType ?? this.quickReplyInputType),
-    intakeActive:         intakeActive         ?? this.intakeActive,
+    messages:         messages         ?? this.messages,
+    connected:        connected        ?? this.connected,
+    thinking:         thinking         ?? this.thinking,
+    activeTool:       clearTool ? null : (activeTool ?? this.activeTool),
+    error:            clearError ? null : (error ?? this.error),
+    quickReplyState:  clearQuickReplies ? null : (quickReplyState ?? this.quickReplyState),
+    intakeActive:     intakeActive     ?? this.intakeActive,
   );
 }
 
 // ── Notifier ───────────────────────────────────────────────────────────────────
 
 class CoachWsNotifier extends Notifier<CoachWsState> {
-  CoachService? _service;
-  StreamSubscription<CoachEvent>? _sub;
+  ws.CoachService? _service;
+  StreamSubscription<ws.CoachEvent>? _sub;
   Timer? _reconnectTimer;
   int _msgCounter = 0;
 
@@ -105,9 +78,9 @@ class CoachWsNotifier extends Notifier<CoachWsState> {
     try {
       final api = ref.read(apiClientProvider);
       final history = await api.get('/api/conversations') as List<dynamic>;
-      final messages = history.map<CoachMessage>((m) {
+      final messages = history.map<ChatMessage>((m) {
         _msgCounter++;
-        return CoachMessage(
+        return ChatMessage(
           id: '${m['role']}_$_msgCounter',
           role: m['role'] as String,
           content: m['content'] as String,
@@ -119,7 +92,7 @@ class CoachWsNotifier extends Notifier<CoachWsState> {
       // History load failed — continue without it
     }
 
-    _service = CoachService();
+    _service = ws.CoachService();
     _sub = _service!.events.listen(_onEvent);
 
     state = state.copyWith(clearError: true);
@@ -133,7 +106,7 @@ class CoachWsNotifier extends Notifier<CoachWsState> {
     if (text.isEmpty || _service == null) return;
 
     _msgCounter++;
-    final msg = CoachMessage(
+    final msg = ChatMessage(
       id: 'user_$_msgCounter',
       role: 'user',
       content: text,
@@ -163,7 +136,7 @@ class CoachWsNotifier extends Notifier<CoachWsState> {
     if (_service == null) return;
 
     _msgCounter++;
-    final msg = CoachMessage(
+    final msg = ChatMessage(
       id: 'user_$_msgCounter',
       role: 'user',
       content: displayLabel,
@@ -179,28 +152,35 @@ class CoachWsNotifier extends Notifier<CoachWsState> {
     _service!.sendQuickReply(value);
   }
 
-  void _onEvent(CoachEvent event) {
+  void _onEvent(ws.CoachEvent event) {
     switch (event) {
-      case TextDelta(:final delta):
+      case ws.TextDelta(:final delta):
         _appendDelta(delta);
-      case ToolUseStart(:final toolName):
+      case ws.ToolUseStart(:final toolName):
         state = state.copyWith(activeTool: toolName, thinking: false);
-      case ToolResult():
+      case ws.ToolResult():
         state = state.copyWith(clearTool: true);
-      case PlanUpdated():
+      case ws.PlanUpdated():
         state = state.copyWith(clearTool: true, intakeActive: false);
         // Refresh the plan data
         ref.read(planProvider.notifier).loadActivePlan();
-      case QuickRepliesEvent(:final questionId, :final options, :final inputType):
+      case ws.QuickRepliesEvent(:final questionId, :final options, :final inputType):
+        final qrOptions = options.map((o) => QuickReplyOption(
+          label: o.label,
+          value: o.value,
+          emoji: o.emoji,
+        )).toList();
         state = state.copyWith(
-          quickReplies: options,
-          quickReplyQuestionId: questionId,
-          quickReplyInputType: inputType,
+          quickReplyState: QuickReplyState(
+            questionId: questionId,
+            options: qrOptions,
+            inputType: inputType,
+          ),
           thinking: false,
         );
-      case MessageEnd():
+      case ws.MessageEnd():
         state = state.copyWith(thinking: false, clearTool: true);
-      case ConnectionError(:final error):
+      case ws.ConnectionError(:final error):
         state = state.copyWith(
           connected: false,
           thinking: false,
@@ -208,7 +188,7 @@ class CoachWsNotifier extends Notifier<CoachWsState> {
           error: error,
         );
         _scheduleReconnect();
-      case ConnectionClosed():
+      case ws.ConnectionClosed():
         state = state.copyWith(connected: false, thinking: false, clearTool: true);
         _scheduleReconnect();
     }
@@ -216,7 +196,7 @@ class CoachWsNotifier extends Notifier<CoachWsState> {
 
   /// Append a text delta to the current assistant message, or create one.
   void _appendDelta(String delta) {
-    final msgs = List<CoachMessage>.from(state.messages);
+    final msgs = List<ChatMessage>.from(state.messages);
 
     if (msgs.isNotEmpty && msgs.last.role == 'assistant') {
       msgs[msgs.length - 1] = msgs.last.copyWith(
@@ -224,7 +204,7 @@ class CoachWsNotifier extends Notifier<CoachWsState> {
       );
     } else {
       _msgCounter++;
-      msgs.add(CoachMessage(
+      msgs.add(ChatMessage(
         id: 'assistant_$_msgCounter',
         role: 'assistant',
         content: delta,

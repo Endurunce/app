@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/theme/app_theme.dart';
+import '../../theme/app_theme.dart';
 
 class InputBar extends StatefulWidget {
   final TextEditingController controller;

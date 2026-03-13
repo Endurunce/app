@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/theme/app_theme.dart';
+import '../../theme/app_theme.dart';
 
 class SuggestionBar extends StatelessWidget {
   final List<String> suggestions;
