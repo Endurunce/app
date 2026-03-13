@@ -180,12 +180,13 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
               ),
             ),
 
-          // Input bar
-          InputBar(
-            controller: _inputCtrl,
-            sending: state.thinking,
-            onSend: _send,
-          ),
+          // Input bar (hidden during intake flow)
+          if (!state.intakeActive)
+            InputBar(
+              controller: _inputCtrl,
+              sending: state.thinking,
+              onSend: _send,
+            ),
         ],
       ),
     );
