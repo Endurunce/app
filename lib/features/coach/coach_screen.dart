@@ -5,11 +5,13 @@ import '../../shared/theme/app_theme.dart';
 import 'coach_ws_provider.dart';
 import 'widgets/input_bar.dart';
 import 'widgets/message_bubble.dart';
+import 'widgets/quick_replies.dart';
 import 'widgets/suggestion_bar.dart';
 import 'widgets/typing_indicator.dart';
 
 class CoachScreen extends ConsumerStatefulWidget {
-  const CoachScreen({super.key});
+  final bool startIntake;
+  const CoachScreen({super.key, this.startIntake = false});
 
   @override
   ConsumerState<CoachScreen> createState() => _CoachScreenState();
@@ -25,10 +27,22 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
     'Wat is mijn focuspunt deze week?',
   ];
 
+  bool _intakeStarted = false;
+
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(coachWsProvider.notifier).connect());
+    Future.microtask(() async {
+      await ref.read(coachWsProvider.notifier).connect();
+      if (widget.startIntake && !_intakeStarted) {
+        _intakeStarted = true;
+        // Small delay to ensure WebSocket is connected
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          ref.read(coachWsProvider.notifier).startIntake();
+        }
+      }
+    });
   }
 
   @override
@@ -133,8 +147,21 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                   ),
           ),
 
-          // Quick suggestions
-          if (state.messages.length < 3)
+          // Quick reply buttons (intake or contextual)
+          if (state.quickReplies != null && state.quickReplies!.isNotEmpty)
+            QuickRepliesBar(
+              questionId: state.quickReplyQuestionId ?? '',
+              options: state.quickReplies!,
+              onSelect: (value, label) {
+                ref.read(coachWsProvider.notifier).sendQuickReply(value, label);
+                _scrollToBottom();
+              },
+            ),
+
+          // Quick suggestions (only when not in intake and no quick replies)
+          if (state.quickReplies == null &&
+              !state.intakeActive &&
+              state.messages.length < 3)
             SuggestionBar(suggestions: _suggestions, onTap: _send),
 
           // Error banner

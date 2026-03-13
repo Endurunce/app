@@ -37,6 +37,9 @@ class CoachWsState {
   final bool thinking;          // agent is processing (between user msg and first delta)
   final String? activeTool;     // tool currently being used by agent
   final String? error;
+  final List<QuickReplyOption>? quickReplies;
+  final String? quickReplyQuestionId;
+  final bool intakeActive;      // whether the intake flow is running
 
   const CoachWsState({
     this.messages = const [],
@@ -44,6 +47,9 @@ class CoachWsState {
     this.thinking = false,
     this.activeTool,
     this.error,
+    this.quickReplies,
+    this.quickReplyQuestionId,
+    this.intakeActive = false,
   });
 
   CoachWsState copyWith({
@@ -54,12 +60,19 @@ class CoachWsState {
     bool clearTool = false,
     String? error,
     bool clearError = false,
+    List<QuickReplyOption>? quickReplies,
+    bool clearQuickReplies = false,
+    String? quickReplyQuestionId,
+    bool? intakeActive,
   }) => CoachWsState(
-    messages:   messages   ?? this.messages,
-    connected:  connected  ?? this.connected,
-    thinking:   thinking   ?? this.thinking,
-    activeTool: clearTool ? null : (activeTool ?? this.activeTool),
-    error:      clearError ? null : (error ?? this.error),
+    messages:             messages             ?? this.messages,
+    connected:            connected            ?? this.connected,
+    thinking:             thinking             ?? this.thinking,
+    activeTool:           clearTool ? null : (activeTool ?? this.activeTool),
+    error:                clearError ? null : (error ?? this.error),
+    quickReplies:         clearQuickReplies ? null : (quickReplies ?? this.quickReplies),
+    quickReplyQuestionId: clearQuickReplies ? null : (quickReplyQuestionId ?? this.quickReplyQuestionId),
+    intakeActive:         intakeActive         ?? this.intakeActive,
   );
 }
 
@@ -128,9 +141,38 @@ class CoachWsNotifier extends Notifier<CoachWsState> {
       thinking: true,
       clearError: true,
       clearTool: true,
+      clearQuickReplies: true,
     );
 
     _service!.send(text);
+  }
+
+  /// Start the intake flow.
+  void startIntake() {
+    if (_service == null) return;
+    state = state.copyWith(intakeActive: true, thinking: true);
+    _service!.startIntake();
+  }
+
+  /// Send a quick reply.
+  void sendQuickReply(String value, String displayLabel) {
+    if (_service == null) return;
+
+    _msgCounter++;
+    final msg = CoachMessage(
+      id: 'user_$_msgCounter',
+      role: 'user',
+      content: displayLabel,
+      createdAt: DateTime.now(),
+    );
+
+    state = state.copyWith(
+      messages: [...state.messages, msg],
+      thinking: true,
+      clearQuickReplies: true,
+    );
+
+    _service!.sendQuickReply(value);
   }
 
   void _onEvent(CoachEvent event) {
@@ -142,9 +184,15 @@ class CoachWsNotifier extends Notifier<CoachWsState> {
       case ToolResult():
         state = state.copyWith(clearTool: true);
       case PlanUpdated():
-        state = state.copyWith(clearTool: true);
+        state = state.copyWith(clearTool: true, intakeActive: false);
         // Refresh the plan data
         ref.read(planProvider.notifier).loadActivePlan();
+      case QuickRepliesEvent(:final questionId, :final options):
+        state = state.copyWith(
+          quickReplies: options,
+          quickReplyQuestionId: questionId,
+          thinking: false,
+        );
       case MessageEnd():
         state = state.copyWith(thinking: false, clearTool: true);
       case ConnectionError(:final error):

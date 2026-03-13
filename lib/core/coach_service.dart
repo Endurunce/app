@@ -52,6 +52,25 @@ class ConnectionError extends CoachEvent {
   ConnectionError(this.error);
 }
 
+class QuickRepliesEvent extends CoachEvent {
+  final String questionId;
+  final List<QuickReplyOption> options;
+  QuickRepliesEvent(this.questionId, this.options);
+}
+
+class QuickReplyOption {
+  final String label;
+  final String value;
+  final String? emoji;
+  QuickReplyOption(this.label, this.value, this.emoji);
+
+  factory QuickReplyOption.fromJson(Map<String, dynamic> j) => QuickReplyOption(
+    j['label'] as String? ?? '',
+    j['value'] as String? ?? '',
+    j['emoji'] as String?,
+  );
+}
+
 class ConnectionClosed extends CoachEvent {}
 
 // ── Service ────────────────────────────────────────────────────────────────────
@@ -105,6 +124,24 @@ class CoachService {
     _channel!.sink.add(jsonEncode({'type': 'message', 'content': message}));
   }
 
+  /// Start the intake flow.
+  void startIntake() {
+    if (_channel == null) {
+      _events.add(ConnectionError('Niet verbonden.'));
+      return;
+    }
+    _channel!.sink.add(jsonEncode({'type': 'start_intake'}));
+  }
+
+  /// Send a quick reply value.
+  void sendQuickReply(String value) {
+    if (_channel == null) {
+      _events.add(ConnectionError('Niet verbonden.'));
+      return;
+    }
+    _channel!.sink.add(jsonEncode({'type': 'quick_reply', 'value': value}));
+  }
+
   /// Parse incoming JSON frames.
   void _onData(dynamic raw) {
     try {
@@ -120,6 +157,14 @@ class CoachService {
           _events.add(ToolResult(
             data['tool_name'] as String? ?? '',
             (data['result'] as Map<String, dynamic>?) ?? {},
+          ));
+        case 'quick_replies':
+          final options = (data['options'] as List<dynamic>?)
+              ?.map((o) => QuickReplyOption.fromJson(o as Map<String, dynamic>))
+              .toList() ?? [];
+          _events.add(QuickRepliesEvent(
+            data['question_id'] as String? ?? '',
+            options,
           ));
         case 'plan_updated':
           _events.add(PlanUpdated(
