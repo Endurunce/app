@@ -55,14 +55,10 @@ class _QuickRepliesBarState extends State<QuickRepliesBar>
     ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic));
     _animCtrl.forward();
 
-    // Auto-open date picker
-    if (widget.inputType == 'date_picker') {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _showDatePicker());
-    }
-    // Auto-focus text/number fields
-    if (widget.inputType == 'text' || widget.inputType == 'number') {
+    // Auto-focus text/number fields after build
+    if (widget.inputType == 'text' || widget.inputType == 'number' || widget.inputType == 'duration_picker') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _focusNode.requestFocus();
+        if (mounted) _focusNode.requestFocus();
       });
     }
   }
@@ -105,6 +101,7 @@ class _QuickRepliesBarState extends State<QuickRepliesBar>
   }
 
   Future<void> _showDatePicker() async {
+    if (!mounted) return;
     final now = DateTime.now();
     final isRaceDate = widget.questionId == 'race_date';
 
@@ -124,7 +121,7 @@ class _QuickRepliesBarState extends State<QuickRepliesBar>
       ),
     );
 
-    if (picked != null) {
+    if (picked != null && mounted) {
       final formatted = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
       final label = '${picked.day}-${picked.month}-${picked.year}';
       widget.onSelect(formatted, '📅 $label');
@@ -133,7 +130,7 @@ class _QuickRepliesBarState extends State<QuickRepliesBar>
 
   void _submitText() {
     final text = _textCtrl.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || !mounted) return;
     widget.onSelect(text, text);
     _textCtrl.clear();
   }
