@@ -55,7 +55,8 @@ class ConnectionError extends CoachEvent {
 class QuickRepliesEvent extends CoachEvent {
   final String questionId;
   final List<QuickReplyOption> options;
-  QuickRepliesEvent(this.questionId, this.options);
+  final String? inputType; // chips, multi_chips, date_picker, number, duration_picker, text
+  QuickRepliesEvent(this.questionId, this.options, this.inputType);
 }
 
 class QuickReplyOption {
@@ -165,6 +166,7 @@ class CoachService {
           _events.add(QuickRepliesEvent(
             data['question_id'] as String? ?? '',
             options,
+            data['input_type'] as String?,
           ));
         case 'plan_updated':
           _events.add(PlanUpdated(

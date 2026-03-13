@@ -39,6 +39,7 @@ class CoachWsState {
   final String? error;
   final List<QuickReplyOption>? quickReplies;
   final String? quickReplyQuestionId;
+  final String? quickReplyInputType;  // chips, multi_chips, date_picker, number, duration_picker, text
   final bool intakeActive;      // whether the intake flow is running
 
   const CoachWsState({
@@ -49,6 +50,7 @@ class CoachWsState {
     this.error,
     this.quickReplies,
     this.quickReplyQuestionId,
+    this.quickReplyInputType,
     this.intakeActive = false,
   });
 
@@ -63,6 +65,7 @@ class CoachWsState {
     List<QuickReplyOption>? quickReplies,
     bool clearQuickReplies = false,
     String? quickReplyQuestionId,
+    String? quickReplyInputType,
     bool? intakeActive,
   }) => CoachWsState(
     messages:             messages             ?? this.messages,
@@ -72,6 +75,7 @@ class CoachWsState {
     error:                clearError ? null : (error ?? this.error),
     quickReplies:         clearQuickReplies ? null : (quickReplies ?? this.quickReplies),
     quickReplyQuestionId: clearQuickReplies ? null : (quickReplyQuestionId ?? this.quickReplyQuestionId),
+    quickReplyInputType:  clearQuickReplies ? null : (quickReplyInputType ?? this.quickReplyInputType),
     intakeActive:         intakeActive         ?? this.intakeActive,
   );
 }
@@ -187,10 +191,11 @@ class CoachWsNotifier extends Notifier<CoachWsState> {
         state = state.copyWith(clearTool: true, intakeActive: false);
         // Refresh the plan data
         ref.read(planProvider.notifier).loadActivePlan();
-      case QuickRepliesEvent(:final questionId, :final options):
+      case QuickRepliesEvent(:final questionId, :final options, :final inputType):
         state = state.copyWith(
           quickReplies: options,
           quickReplyQuestionId: questionId,
+          quickReplyInputType: inputType,
           thinking: false,
         );
       case MessageEnd():

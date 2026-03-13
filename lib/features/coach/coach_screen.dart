@@ -148,10 +148,11 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
           ),
 
           // Quick reply buttons (intake or contextual)
-          if (state.quickReplies != null && state.quickReplies!.isNotEmpty)
+          if (state.quickReplies != null || state.quickReplyInputType != null)
             QuickRepliesBar(
               questionId: state.quickReplyQuestionId ?? '',
-              options: state.quickReplies!,
+              options: state.quickReplies ?? [],
+              inputType: state.quickReplyInputType,
               onSelect: (value, label) {
                 ref.read(coachWsProvider.notifier).sendQuickReply(value, label);
                 _scrollToBottom();
