@@ -49,11 +49,13 @@ class QuickReplyState {
   final String questionId;
   final List<QuickReplyOption> options;
   final String? inputType; // chips, multi_chips, date_picker, number, duration_picker, text
+  final int minSelections;
 
   const QuickReplyState({
     required this.questionId,
     required this.options,
     this.inputType,
+    this.minSelections = 1,
   });
 }
 
@@ -230,6 +232,7 @@ class _ChatViewState extends State<ChatView> {
             questionId: widget.quickReplyState!.questionId,
             options: widget.quickReplyState!.options,
             inputType: widget.quickReplyState!.inputType,
+            minSelections: widget.quickReplyState!.minSelections,
             onSelect: (value, label) {
               widget.onQuickReply?.call(value, label);
               _scrollToBottom();

@@ -262,11 +262,17 @@ class _InjuryChatScreenState extends ConsumerState<InjuryChatScreen> {
     if (ok) {
       await ref.read(planProvider.notifier).loadActivePlan();
     }
-    if (mounted) context.pop();
+    if (mounted) {
+      if (context.canPop()) context.pop();
+      else context.go('/injuries');
+    }
   }
 
   void _skipAdaptation() {
-    if (mounted) context.pop();
+    if (mounted) {
+      if (context.canPop()) context.pop();
+      else context.go('/injuries');
+    }
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────

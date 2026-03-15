@@ -122,6 +122,7 @@ class _IntakeChatScreenState extends ConsumerState<IntakeChatScreen> {
       id: 'training_days',
       question: 'Op welke dagen wil je trainen? Kies minimaal 2.',
       inputType: ChatInputType.multiChips,
+      minSelections: 2,
       options: [
         ChatOption(label: 'Ma', value: '0', emoji: '📅'),
         ChatOption(label: 'Di', value: '1', emoji: '📅'),

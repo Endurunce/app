@@ -67,6 +67,9 @@ class ChatFormStep {
   /// Receives the answers collected so far and returns the chip options to show.
   final List<ChatOption> Function(Map<String, dynamic> answers)? optionsBuilder;
 
+  /// Minimum selections required for [ChatInputType.multiChips]. Defaults to 1.
+  final int minSelections;
+
   const ChatFormStep({
     required this.id,
     required this.question,
@@ -75,6 +78,7 @@ class ChatFormStep {
     this.validator,
     this.showIf,
     this.optionsBuilder,
+    this.minSelections = 1,
   });
 }
 
@@ -232,6 +236,7 @@ class _ChatFormState extends State<ChatForm> {
       questionId: step.id,
       options: options,
       inputType: inputType,
+      minSelections: step.minSelections,
     );
   }
 
@@ -396,6 +401,7 @@ class _ChatFormState extends State<ChatForm> {
             options: _quickReplyState!.options,
             inputType: _quickReplyState!.inputType,
             onSelect: _onAnswer,
+            minSelections: _quickReplyState!.minSelections,
           ),
 
         // Validation error

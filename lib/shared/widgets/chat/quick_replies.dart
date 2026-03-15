@@ -17,6 +17,7 @@ class QuickRepliesBar extends StatefulWidget {
   final List<QuickReplyOption> options;
   final String? inputType;
   final void Function(String value, String label) onSelect;
+  final int minSelections;
 
   const QuickRepliesBar({
     super.key,
@@ -24,6 +25,7 @@ class QuickRepliesBar extends StatefulWidget {
     required this.options,
     this.inputType,
     required this.onSelect,
+    this.minSelections = 1,
   });
 
   @override
@@ -90,7 +92,7 @@ class _QuickRepliesBarState extends State<QuickRepliesBar>
   }
 
   void _onConfirmMulti() {
-    if (_selected.length < 2) return;
+    if (_selected.length < widget.minSelections) return;
     final sorted = _selected.toList()..sort();
     final value = sorted.join(',');
     final dayNames = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
@@ -213,7 +215,7 @@ class _QuickRepliesBarState extends State<QuickRepliesBar>
         SizedBox(
           width: double.infinity,
           child: FilledButton(
-            onPressed: _selected.length >= 2 ? _onConfirmMulti : null,
+            onPressed: _selected.length >= widget.minSelections ? _onConfirmMulti : null,
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.brand,
               disabledBackgroundColor: AppColors.muted.withValues(alpha: 0.3),
@@ -222,9 +224,9 @@ class _QuickRepliesBarState extends State<QuickRepliesBar>
               ),
             ),
             child: Text(
-              _selected.length >= 2
-                  ? 'Klaar (${_selected.length} dagen)'
-                  : 'Kies minimaal 2 dagen',
+              _selected.length >= widget.minSelections
+                  ? 'Klaar (${_selected.length})'
+                  : 'Kies minimaal ${widget.minSelections}',
               style: const TextStyle(fontSize: 14),
             ),
           ),
