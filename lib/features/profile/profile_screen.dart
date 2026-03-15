@@ -33,16 +33,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final plan    = ref.watch(planProvider);
     final strava  = ref.watch(stravaProvider);
 
-    int totalSessions = 0;
-    int completedSessions = 0;
-    if (plan.plan != null) {
-      for (final week in plan.plan!.weeks) {
-        final active = week.activeDays;
-        totalSessions     += active.length;
-        completedSessions += active.where((d) => d.completed).length;
-      }
-    }
-
     final displayName = profile.profile?.name
         ?? auth.displayName
         ?? auth.email?.split('@').first
@@ -130,12 +120,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             label: 'Terrein',
                             value: profile.profile!.terrainLabel,
                           ),
-                          const Divider(height: 24),
                         ],
-                        _ProgressRow(
-                          completed: completedSessions,
-                          total:     totalSessions,
-                        ),
                       ],
                     ),
                   ),
@@ -631,41 +616,6 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _ProgressRow extends StatelessWidget {
-  final int completed;
-  final int total;
-  const _ProgressRow({required this.completed, required this.total});
-
-  @override
-  Widget build(BuildContext context) {
-    final pct = total > 0 ? completed / total : 0.0;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(children: [
-          const Text('🏁', style: TextStyle(fontSize: 16)),
-          const SizedBox(width: 10),
-          const Text('Voortgang', style: TextStyle(color: AppColors.muted, fontSize: 13)),
-          const Spacer(),
-          Text(
-            '$completed / $total sessies',
-            style: const TextStyle(color: AppColors.onBg, fontWeight: FontWeight.w600, fontSize: 13),
-          ),
-        ]),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: pct,
-            minHeight: 6,
-            backgroundColor: AppColors.outline,
-            valueColor: const AlwaysStoppedAnimation(AppColors.brand),
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class _ActionRow extends StatelessWidget {
   final IconData icon;
