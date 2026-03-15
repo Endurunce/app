@@ -346,7 +346,7 @@ class _WeekCard extends StatelessWidget {
                     ],
                   ])),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Text('${week.targetKm.round()} km',
+                    Text('${week.effectiveKm.round()} km',
                         style: const TextStyle(
                           fontSize: 22, fontWeight: FontWeight.w800,
                           color: AppColors.brand)),

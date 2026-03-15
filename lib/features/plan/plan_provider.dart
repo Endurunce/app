@@ -63,6 +63,10 @@ class Week {
   List<Day> get activeDays => days.where((d) => d.sessionType != 'rest').toList();
   int get completedCount  => days.where((d) => d.completed).length;
 
+  /// Effective total km for the week — sum of each session's current target.
+  /// Reflects injury adaptations (which change session km, not the week record).
+  double get effectiveKm => days.fold(0.0, (sum, d) => sum + d.effectiveKm);
+
   factory Week.fromJson(Map<String, dynamic> j) => Week(
     weekNumber: j['week_number'] as int,
     phase:      j['phase'] as String,
