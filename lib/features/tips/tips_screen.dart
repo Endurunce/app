@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/animated_list_item.dart';
 
@@ -61,15 +59,6 @@ class TipsScreen extends StatelessWidget {
               body:  e.value.body,
             ),
           )),
-          const SizedBox(height: 8),
-          AnimatedListItem(
-            index: _tips.length,
-            child: FilledButton.icon(
-              onPressed: () => context.push('/intake'),
-              icon: const Icon(Icons.edit_outlined, size: 18),
-              label: const Text('Profiel bijwerken'),
-            ),
-          ),
         ],
       ),
     );

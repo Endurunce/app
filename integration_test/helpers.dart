@@ -77,3 +77,126 @@ Future<void> scrollDown(WidgetTester t, {double dy = -400}) async {
   await t.drag(find.byType(Scrollable).first, Offset(0, dy));
   await t.pump(const Duration(milliseconds: 300));
 }
+
+// ── Registratie helpers ───────────────────────────────────────────────────────
+
+/// Voert de volledige twee-fase registratie uit en landt op de intake.
+///
+/// Fase 1: e-mail + wachtwoord → Volgende
+/// Fase 2: naam + geboortedatum (date picker, accepteer standaard 2000) + geslacht → Plan opmaken
+Future<void> register(
+  WidgetTester t, {
+  String? email,
+  String name = 'Tester',
+}) async {
+  await tapText(t, 'Registreren');
+  await settle(t);
+
+  // Fase 1
+  await fillField(t, 0, email ?? uniqueEmail());
+  await fillField(t, 1, kTestPassword);
+  await tapText(t, 'Volgende');
+  await wait(t, ms: 2500);
+
+  // Fase 2
+  await fillField(t, 0, name);
+  // Geboortedatum via date picker — accepteer standaard (jaar 2000, leeftijd 24+)
+  await tapText(t, 'Geboortedatum kiezen');
+  await settle(t);
+  await tapText(t, 'OK');
+  await settle(t);
+  await tapText(t, 'Man');
+  await settle(t);
+  await tapText(t, 'Plan opmaken');
+  await wait(t, ms: 1000);
+}
+
+// ── Blessure helpers ──────────────────────────────────────────────────────────
+
+/// Meldt een blessure via het chat-formulier en keert terug naar Blessures.
+///
+/// Verwacht dat de huidige route het Blessures-scherm is (FAB zichtbaar).
+Future<void> reportInjury(WidgetTester t) async {
+  // Open blessure-chat via FAB
+  await t.tap(find.byType(FloatingActionButton).first);
+  await settle(t);
+
+  // Stap 1: Locatie (multi-chips) — selecteer Knie
+  await tapText(t, 'Knie');
+  await settle(t);
+  // Bevestig de selectie ("Klaar (1)")
+  await t.tap(find.textContaining('Klaar (').first);
+  await settle(t);
+
+  // Stap 2: Kant — selecteer Links (Knie is eenzijdig)
+  await tapText(t, 'Links');
+  await settle(t);
+
+  // Stap 3: Ernst (number) — typ 5 en verstuur via send-icoon
+  await t.enterText(find.byType(TextField).first, '5');
+  await t.pump();
+  await t.tap(find.byIcon(Icons.send).first);
+  await settle(t);
+
+  // Stap 4: Pijntype — selecteer Stekend
+  await tapText(t, 'Stekend');
+  await settle(t);
+
+  // Stap 5: Wanneer — selecteer Alleen tijdens bewegen
+  await tapText(t, 'Alleen tijdens bewegen');
+  await settle(t);
+
+  // Stap 6: Hoe lang — selecteer 1–3 dagen
+  await tapText(t, '1–3 dagen');
+  await settle(t);
+
+  // Stap 7: Kan normaal lopen — Ja
+  await tapText(t, 'Ja');
+  await settle(t);
+
+  // Stap 8: Kan hardlopen — Nee
+  await tapText(t, 'Nee');
+  await settle(t);
+
+  // Stap 9: Beschrijving — overslaan
+  await tapText(t, 'Overslaan');
+  await wait(t, ms: 4000); // wacht op API-aanroep
+
+  // Navigeer terug: tik op "Klaar" (geen plan wijzigingen) of "Plan houden"
+  final klaarBtn = find.widgetWithText(FilledButton, 'Klaar');
+  if (klaarBtn.evaluate().isNotEmpty) {
+    await t.tap(klaarBtn.first);
+  } else {
+    final planHouden = find.text('Plan houden');
+    if (planHouden.evaluate().isNotEmpty) {
+      await t.tap(planHouden.first);
+    } else {
+      // Fallback: sluit via ×-knop
+      await t.tap(find.byIcon(Icons.close).first);
+    }
+  }
+  await settle(t);
+}
+
+/// Volledige intake doorlopen na registratie (begint bij stap 2 — stap 1 is
+/// prefilled vanuit de registratie).
+Future<void> completeIntake(WidgetTester t) async {
+  await tapText(t, '2–5 jaar'); await settle(t);
+  await tapText(t, 'Volgende'); await settle(t);
+  await tapText(t, 'Overslaan'); await settle(t);   // PR-tijden
+  await tapText(t, 'Marathon'); await settle(t);
+  await tapText(t, 'Weg'); await settle(t);
+  await tapText(t, 'Kies datum'); await settle(t);
+  await tapText(t, 'OK'); await settle(t);
+  await tapText(t, 'Volgende'); await settle(t);
+  await tapText(t, 'Ma');
+  await tapText(t, 'Wo');
+  await tapText(t, 'Vr');
+  await tapText(t, 'Zo'); await settle(t);
+  await tapText(t, 'Lange loop'); await settle(t);
+  await tapText(t, 'Volgende'); await settle(t);
+  await tapText(t, 'Overslaan'); await settle(t);   // hartslag
+  await tapText(t, '7–8 uur'); await settle(t);
+  await tapText(t, 'Plan aanmaken');
+  await wait(t, ms: 6000); // wacht op AI plan generatie
+}

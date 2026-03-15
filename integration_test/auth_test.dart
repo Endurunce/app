@@ -67,7 +67,10 @@ void main() {
 
       // Fase 2: persoonlijk
       await fillField(t, 0, 'Test Runner');
-      await fillField(t, 1, '28');
+      await tapText(t, 'Geboortedatum kiezen');
+      await settle(t);
+      await tapText(t, 'OK');
+      await settle(t);
       await tapText(t, 'Man');
       await settle(t);
       await tapText(t, 'Plan opmaken');
@@ -75,6 +78,43 @@ void main() {
 
       // Na registratie moet de intake starten
       seeText('Jouw plan opmaken');
+    });
+
+    testWidgets('Login met geldig account navigeert naar planscherm', (t) async {
+      app.main();
+      await settle(t);
+
+      // Registreer een nieuw account
+      final email = uniqueEmail();
+      await register(t, email: email);
+
+      // Sluit intake en ga naar profiel om uit te loggen
+      final closeBtn = find.byIcon(Icons.close);
+      if (closeBtn.evaluate().isNotEmpty) {
+        await t.tap(closeBtn.first);
+        await settle(t);
+      }
+      await tapText(t, 'Profiel');
+      await settle(t);
+      await scrollDown(t, dy: -600);
+      await settle(t);
+      await tapText(t, 'Uitloggen');
+      await settle(t);
+
+      // Login met het zojuist aangemaakte account
+      await fillField(t, 0, email);
+      await fillField(t, 1, kTestPassword);
+      await tapText(t, 'Inloggen');
+      await wait(t, ms: 3000);
+
+      // Moet landing op plan of intake zijn (al ingelogd)
+      expect(
+        find.textContaining('Trainingsplan').evaluate().isNotEmpty ||
+            find.textContaining('Nog geen').evaluate().isNotEmpty ||
+            find.textContaining('Jouw plan').evaluate().isNotEmpty,
+        isTrue,
+        reason: 'Na login verwacht planscherm of intakescherm',
+      );
     });
 
     testWidgets('Terugknop op registratiescherm gaat naar login', (t) async {

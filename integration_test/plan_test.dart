@@ -13,68 +13,8 @@ void main() {
   Future<void> setupPlanScreen(WidgetTester t) async {
     app.main();
     await settle(t);
-
-    await tapText(t, 'Registreren');
-    await settle(t);
-
-    // Fase 1: account aanmaken
-    await fillField(t, 0, uniqueEmail());
-    await fillField(t, 1, kTestPassword);
-    await tapText(t, 'Volgende');
-    await wait(t, ms: 2500);
-
-    // Fase 2: persoonlijk (naam/leeftijd/geslacht)
-    await fillField(t, 0, 'Test Runner');
-    await fillField(t, 1, '28');
-    await tapText(t, 'Man');
-    await settle(t);
-    await tapText(t, 'Plan opmaken');
-    await wait(t, ms: 1000);
-
-    // Intake — stap 1 is overgeslagen (prefilled), start bij stap 2 (ervaring)
-    await tapText(t, '2–5 jaar');
-    await settle(t);
-    await tapText(t, 'Volgende');
-    await settle(t);
-
-    // Stap 3 — PR-tijden overslaan
-    await tapText(t, 'Overslaan');
-    await settle(t);
-
-    // Stap 4 — race doel
-    await tapText(t, 'Marathon');
-    await settle(t);
-    await tapText(t, 'Weg');
-    await settle(t);
-    // Datum: kies de eerste beschikbare datum via de picker
-    await tapText(t, 'Kies datum');
-    await settle(t);
-    await tapText(t, 'OK');
-    await settle(t);
-    await tapText(t, 'Volgende');
-    await settle(t);
-
-    // Stap 5 — trainingsdagen
-    await tapText(t, 'Ma');
-    await tapText(t, 'Wo');
-    await tapText(t, 'Vr');
-    await tapText(t, 'Zo');
-    await settle(t);
-    // Lange loopdag = Zo
-    await tapText(t, 'Lange loop');
-    await settle(t);
-    await tapText(t, 'Volgende');
-    await settle(t);
-
-    // Stap 6 — hartslag overslaan
-    await tapText(t, 'Overslaan');
-    await settle(t);
-
-    // Stap 7 — slaap
-    await tapText(t, '7–8 uur');
-    await settle(t);
-    await tapText(t, 'Plan aanmaken');
-    await wait(t, ms: 6000); // wacht op AI plan generatie
+    await register(t);
+    await completeIntake(t);
   }
 
   group('Trainingsplan scherm', () {
@@ -83,20 +23,7 @@ void main() {
       await settle(t);
 
       // Registreer een verse gebruiker en sluit de intake direct
-      await tapText(t, 'Registreren');
-      await settle(t);
-
-      await fillField(t, 0, uniqueEmail());
-      await fillField(t, 1, kTestPassword);
-      await tapText(t, 'Volgende');
-      await wait(t, ms: 2500);
-
-      await fillField(t, 0, 'Test Runner');
-      await fillField(t, 1, '28');
-      await tapText(t, 'Man');
-      await settle(t);
-      await tapText(t, 'Plan opmaken');
-      await wait(t, ms: 1000);
+      await register(t);
 
       // Gebruiker is in intake — klik sluitknop (×)
       final closeBtn = find.byIcon(Icons.close);
@@ -114,20 +41,7 @@ void main() {
       app.main();
       await settle(t);
 
-      await tapText(t, 'Registreren');
-      await settle(t);
-
-      await fillField(t, 0, uniqueEmail());
-      await fillField(t, 1, kTestPassword);
-      await tapText(t, 'Volgende');
-      await wait(t, ms: 2500);
-
-      await fillField(t, 0, 'Test Runner');
-      await fillField(t, 1, '28');
-      await tapText(t, 'Man');
-      await settle(t);
-      await tapText(t, 'Plan opmaken');
-      await wait(t, ms: 1000);
+      await register(t);
 
       final closeBtn = find.byIcon(Icons.close);
       if (closeBtn.evaluate().isNotEmpty) {

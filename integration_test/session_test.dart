@@ -11,38 +11,8 @@ void main() {
   Future<void> goToWeek1(WidgetTester t) async {
     app.main();
     await settle(t);
-
-    await tapText(t, 'Registreren');
-    await settle(t);
-    await fillField(t, 0, uniqueEmail());
-    await fillField(t, 1, kTestPassword);
-    await tapText(t, 'Account aanmaken');
-    await wait(t, ms: 3000);
-
-    // Minimale intake
-    await fillField(t, 0, 'Tester');
-    await fillField(t, 1, '25');
-    await tapText(t, 'Man');
-    await settle(t);
-    await tapText(t, 'Volgende'); await settle(t);
-    await tapText(t, '2–5 jaar'); await settle(t);
-    await tapText(t, 'Volgende'); await settle(t);
-    await tapText(t, 'Overslaan'); await settle(t);
-    await tapText(t, 'Marathon'); await settle(t);
-    await tapText(t, 'Weg'); await settle(t);
-    await tapText(t, 'Kies datum'); await settle(t);
-    await tapText(t, 'OK'); await settle(t);
-    await tapText(t, 'Volgende'); await settle(t);
-    await tapText(t, 'Ma');
-    await tapText(t, 'Wo');
-    await tapText(t, 'Vr');
-    await tapText(t, 'Zo'); await settle(t);
-    await tapText(t, 'Lange loop'); await settle(t);
-    await tapText(t, 'Volgende'); await settle(t);
-    await tapText(t, 'Overslaan'); await settle(t);
-    await tapText(t, '7–8 uur'); await settle(t);
-    await tapText(t, 'Plan aanmaken');
-    await wait(t, ms: 6000);
+    await register(t);
+    await completeIntake(t);
 
     // Week 1 openen
     await t.tap(find.textContaining('Week 1').first);

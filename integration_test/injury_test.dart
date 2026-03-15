@@ -13,40 +13,9 @@ void main() {
   Future<void> goToInjury(WidgetTester t) async {
     app.main();
     await settle(t);
+    await register(t);
+    await completeIntake(t);
 
-    await tapText(t, 'Registreren');
-    await settle(t);
-    await fillField(t, 0, uniqueEmail());
-    await fillField(t, 1, kTestPassword);
-    await tapText(t, 'Account aanmaken');
-    await wait(t, ms: 3000);
-
-    // Minimale intake
-    await fillField(t, 0, 'Tester');
-    await fillField(t, 1, '25');
-    await tapText(t, 'Man');
-    await settle(t);
-    await tapText(t, 'Volgende'); await settle(t);
-    await tapText(t, '2–5 jaar'); await settle(t);
-    await tapText(t, 'Volgende'); await settle(t);
-    await tapText(t, 'Overslaan'); await settle(t);
-    await tapText(t, 'Marathon'); await settle(t);
-    await tapText(t, 'Weg'); await settle(t);
-    await tapText(t, 'Kies datum'); await settle(t);
-    await tapText(t, 'OK'); await settle(t);
-    await tapText(t, 'Volgende'); await settle(t);
-    await tapText(t, 'Ma');
-    await tapText(t, 'Wo');
-    await tapText(t, 'Vr');
-    await tapText(t, 'Zo'); await settle(t);
-    await tapText(t, 'Lange loop'); await settle(t);
-    await tapText(t, 'Volgende'); await settle(t);
-    await tapText(t, 'Overslaan'); await settle(t);
-    await tapText(t, '7–8 uur'); await settle(t);
-    await tapText(t, 'Plan aanmaken');
-    await wait(t, ms: 6000);
-
-    // Navigeer naar Blessures-tabblad
     await tapText(t, 'Blessures');
     await settle(t);
   }
@@ -59,162 +28,193 @@ void main() {
       seeText('Blijf zo doorgaan!');
     });
 
-    testWidgets('Melden-knop opent sheet', (t) async {
+    testWidgets('Melden-FAB opent blessure-chat', (t) async {
       await goToInjury(t);
 
       await t.tap(find.byType(FloatingActionButton).first);
       await settle(t);
 
       seeText('Blessure melden');
-      seeText('Beschrijf zo nauwkeurig mogelijk');
     });
 
-    testWidgets('Sheet sluit via ×-knop', (t) async {
+    testWidgets('Chat-scherm sluit via ×-knop', (t) async {
       await goToInjury(t);
 
       await t.tap(find.byType(FloatingActionButton).first);
       await settle(t);
 
-      expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+      seeText('Blessure melden');
 
-      await t.tap(find.byIcon(Icons.close).last);
+      await t.tap(find.byIcon(Icons.close).first);
       await settle(t);
 
-      expect(find.byType(DraggableScrollableSheet), findsNothing);
+      // Terug op blessures-scherm — lege staat zichtbaar
+      seeText('Geen actieve blessures');
     });
 
-    testWidgets('Mobiliteitsopties zichtbaar in sheet', (t) async {
+    testWidgets('Intro-bericht en locatievraag zichtbaar', (t) async {
       await goToInjury(t);
 
       await t.tap(find.byType(FloatingActionButton).first);
       await settle(t);
 
-      seeText('Volledig lopen en hardlopen');
-      seeText('Alleen wandelen, niet hardlopen');
-      seeText('Moeite met lopen');
+      // Intro-bericht
+      seeText('blessure te registreren');
+
+      // Eerste vraag: locatie
+      seeText('Waar zit de pijn?');
     });
 
-    testWidgets('Locatie-chips zichtbaar in sheet', (t) async {
+    testWidgets('Locatie-chips zichtbaar in chat', (t) async {
       await goToInjury(t);
 
       await t.tap(find.byType(FloatingActionButton).first);
       await settle(t);
 
-      // Scroll omlaag om locatie-sectie te bereiken
-      await scrollDown(t, dy: -200);
-
-      seeText('Locatie');
-      // Minstens één locatie-chip aanwezig (knie, enkel, etc.)
-      expect(find.byType(FilterChip), findsAtLeastNWidgets(1));
+      // Bekende locatie-labels aanwezig
+      seeText('Knie');
+      seeText('Enkel');
+      seeText('Hamstring');
     });
 
-    testWidgets('Melden-knop inactief zonder locatie en mobiliteit', (t) async {
+    testWidgets('Bevestig-knop inactief zonder selectie', (t) async {
       await goToInjury(t);
 
       await t.tap(find.byType(FloatingActionButton).first);
       await settle(t);
 
-      // Zoek de submit-knop onderaan
-      final submitBtn = find.widgetWithText(FilledButton, 'Blessure melden');
-      expect(submitBtn, findsOneWidget);
-
-      final btn = t.widget<FilledButton>(submitBtn);
-      expect(btn.onPressed, isNull,
-          reason: 'Melden-knop inactief zonder verplichte velden');
+      // Bevestig-knop toont "Kies minimaal 1" en is uitgeschakeld
+      final btn = find.widgetWithText(FilledButton, 'Kies minimaal 1');
+      expect(btn, findsOneWidget);
+      final b = t.widget<FilledButton>(btn.first);
+      expect(b.onPressed, isNull,
+          reason: 'Bevestig-knop inactief zonder locatie-selectie');
     });
 
-    testWidgets('Mobiliteit selecteren activeert knop gedeeltelijk', (t) async {
+    testWidgets('Locatie selecteren activeert bevestig-knop', (t) async {
       await goToInjury(t);
 
       await t.tap(find.byType(FloatingActionButton).first);
       await settle(t);
 
-      // Selecteer mobiliteitsoptie
-      await tapText(t, 'Volledig lopen en hardlopen');
+      // Selecteer Knie
+      await tapText(t, 'Knie');
       await settle(t);
 
-      // Nog steeds inactief want locatie ontbreekt
-      final btn = t.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Blessure melden'));
-      expect(btn.onPressed, isNull,
-          reason: 'Knop blijft inactief zonder locatie');
+      // Knop toont "Klaar (1)"
+      seeText('Klaar (1)');
+      final btn = find.textContaining('Klaar (');
+      final parent = find.ancestor(of: btn, matching: find.byType(FilledButton));
+      if (parent.evaluate().isNotEmpty) {
+        final b = t.widget<FilledButton>(parent.first);
+        expect(b.onPressed, isNotNull,
+            reason: 'Bevestig-knop actief na locatie-selectie');
+      }
     });
 
-    testWidgets('Locatie + mobiliteit activeren meld-knop', (t) async {
+    testWidgets('Kant-vraag verschijnt na locatie voor eenzijdige locatie', (t) async {
       await goToInjury(t);
 
       await t.tap(find.byType(FloatingActionButton).first);
       await settle(t);
 
-      // Mobiliteit
-      await tapText(t, 'Volledig lopen en hardlopen');
+      await tapText(t, 'Knie');
+      await settle(t);
+      await t.tap(find.textContaining('Klaar (').first);
       await settle(t);
 
-      // Locatie (eerste chip)
-      final chips = find.byType(FilterChip);
-      await t.tap(chips.first);
-      await settle(t);
-
-      final btn = t.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Blessure melden'));
-      expect(btn.onPressed, isNotNull,
-          reason: 'Melden-knop actief na invullen verplichte velden');
+      // "Aan welke kant?" verschijnt
+      seeText('Aan welke kant?');
+      seeText('Links');
+      seeText('Rechts');
     });
 
-    testWidgets('Ernst-slider aanwezig en standaard op 5', (t) async {
+    testWidgets('Ernst-vraag verschijnt na kant-selectie', (t) async {
       await goToInjury(t);
 
       await t.tap(find.byType(FloatingActionButton).first);
       await settle(t);
 
-      await scrollDown(t, dy: -300);
+      await tapText(t, 'Knie');
+      await settle(t);
+      await t.tap(find.textContaining('Klaar (').first);
+      await settle(t);
 
-      expect(find.byType(Slider), findsAtLeastNWidgets(1));
-      // Standaardwaarde '5 / 10' zichtbaar
-      seeText('5 / 10');
+      await tapText(t, 'Links');
+      await settle(t);
+
+      // Ernst-vraag (number input)
+      seeText('Hoe erg is de pijn');
     });
 
-    testWidgets('Pijntype-chips zichtbaar na scrollen', (t) async {
+    testWidgets('Volledig melden toont blessure-kaart op blessures-scherm', (t) async {
       await goToInjury(t);
+      await reportInjury(t);
 
-      await t.tap(find.byType(FloatingActionButton).first);
-      await settle(t);
-
-      await scrollDown(t, dy: -400);
-
-      seeText('Soort pijn');
-      seeText('Scherp');
-      seeText('Stijf');
-    });
-
-    testWidgets('Blessure melden navigeert terug en toont kaart', (t) async {
-      await goToInjury(t);
-
-      await t.tap(find.byType(FloatingActionButton).first);
-      await settle(t);
-
-      // Vul verplichte velden in
-      await tapText(t, 'Alleen wandelen, niet hardlopen');
-      await settle(t);
-
-      final chips = find.byType(FilterChip);
-      await t.tap(chips.first);
-      await settle(t);
-
-      // Verzend
-      final submitBtn = find.widgetWithText(FilledButton, 'Blessure melden');
-      await t.tap(submitBtn);
-      await wait(t, ms: 4000);
-
-      // Sheet gesloten, blessure-kaart zichtbaar
-      expect(find.byType(DraggableScrollableSheet), findsNothing);
-      // Blessurelijst toont nu minstens één kaart
-      expect(find.byType(Card).evaluate().isNotEmpty ||
-          find.textContaining('blessure').evaluate().isNotEmpty ||
-          find.textContaining('pijn').evaluate().isNotEmpty ||
-          find.byType(ListTile).evaluate().isNotEmpty,
+      // Actieve blessure-kaart met Ernst-label
+      expect(
+        find.textContaining('Ernst').evaluate().isNotEmpty ||
+            find.textContaining('blessure').evaluate().isNotEmpty,
         isTrue,
         reason: 'Blessure-kaart verwacht na melden',
+      );
+    });
+
+    testWidgets('Blessure markeren als hersteld werkt', (t) async {
+      await goToInjury(t);
+      await reportInjury(t);
+
+      // Knop "Markeren als hersteld" aanwezig op de actieve kaart
+      final resolveBtn = find.textContaining('Markeren als hersteld');
+      expect(resolveBtn.evaluate().isNotEmpty, isTrue,
+          reason: '"Markeren als hersteld" knop verwacht op blessure-kaart');
+
+      // Markeer als hersteld
+      await t.tap(resolveBtn.first);
+      await wait(t, ms: 3000);
+
+      // Bevestiging: snackbar of lege actieve staat
+      expect(
+        find.textContaining('hersteld').evaluate().isNotEmpty ||
+            find.textContaining('Geen actieve').evaluate().isNotEmpty,
+        isTrue,
+        reason: 'Bevestiging van herstel verwacht (snackbar of lege staat)',
+      );
+    });
+
+    testWidgets('Geschiedenis-tab laadt zonder fouten', (t) async {
+      await goToInjury(t);
+
+      await tapText(t, 'Geschiedenis');
+      await settle(t);
+
+      // Lege staat (geen blessures gemeld in deze test)
+      seeText('Geen blessuregeschiedenis');
+      expect(find.textContaining('fout'), findsNothing);
+      expect(find.textContaining('error'), findsNothing);
+    });
+
+    testWidgets('Geschiedenis-tab toont herstelde blessure', (t) async {
+      await goToInjury(t);
+      await reportInjury(t);
+
+      // Markeer als hersteld
+      final resolveBtn = find.textContaining('Markeren als hersteld');
+      if (resolveBtn.evaluate().isNotEmpty) {
+        await t.tap(resolveBtn.first);
+        await wait(t, ms: 3000);
+      }
+
+      // Ga naar geschiedenis-tab
+      await tapText(t, 'Geschiedenis');
+      await settle(t);
+
+      // Herstelde blessure staat in de lijst
+      expect(
+        find.textContaining('Hersteld').evaluate().isNotEmpty ||
+            find.textContaining('Knie').evaluate().isNotEmpty,
+        isTrue,
+        reason: 'Herstelde blessure verwacht in geschiedenis',
       );
     });
   });
