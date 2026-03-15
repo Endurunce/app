@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../theme/app_theme.dart';
+import '../duration_picker.dart';
 import 'chat_view.dart';
 
 /// Renders the appropriate input widget based on [inputType]:
@@ -56,7 +57,7 @@ class _QuickRepliesBarState extends State<QuickRepliesBar>
     _animCtrl.forward();
 
     // Auto-focus text/number fields after build
-    if (widget.inputType == 'text' || widget.inputType == 'number' || widget.inputType == 'duration_picker') {
+    if (widget.inputType == 'text' || widget.inputType == 'number') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _focusNode.requestFocus();
       });
@@ -304,17 +305,59 @@ class _QuickRepliesBarState extends State<QuickRepliesBar>
     );
   }
 
+  Future<void> _showDurationPicker() async {
+    await showDurationPicker(
+      context: context,
+      onPicked: (duration) {
+        if (duration == null || !mounted) return;
+        final h = duration.inHours;
+        final m = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+        final s = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+        final value = '$h:$m:$s';
+        final label = h > 0 ? '$h u $m min $s sec' : '$m:$s';
+        widget.onSelect(value, '⏱ $label');
+      },
+    );
+  }
+
   Widget _buildDurationInput() {
+    return Row(
+      children: [
+        Expanded(
+          child: FilledButton.icon(
+            onPressed: _showDurationPicker,
+            icon: const Icon(Icons.timer_outlined, size: 18),
+            label: const Text('Kies een tijd'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.brand,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ),
+        ...widget.options.map((opt) => Padding(
+          padding: const EdgeInsets.only(left: 8),
+          child: _QuickReplyChip(
+            option: opt,
+            isSelected: false,
+            onTap: () => _onChipTap(opt),
+          ),
+        )),
+      ],
+    );
+  }
+
+  Widget _buildTextInput() {
     return Row(
       children: [
         Expanded(
           child: TextField(
             controller: _textCtrl,
             focusNode: _focusNode,
-            keyboardType: TextInputType.datetime,
             style: const TextStyle(color: AppColors.onBg),
             decoration: InputDecoration(
-              hintText: 'MM:SS of HH:MM:SS',
+              hintText: 'Typ hier...',
               hintStyle: TextStyle(color: AppColors.muted.withValues(alpha: 0.6)),
               filled: true,
               fillColor: AppColors.surfaceHigh,
@@ -331,7 +374,6 @@ class _QuickRepliesBarState extends State<QuickRepliesBar>
             onSubmitted: (_) => _submitText(),
           ),
         ),
-        // Show skip button if available
         ...widget.options.map((opt) => Padding(
           padding: const EdgeInsets.only(left: 8),
           child: _QuickReplyChip(
@@ -341,30 +383,6 @@ class _QuickRepliesBarState extends State<QuickRepliesBar>
           ),
         )),
       ],
-    );
-  }
-
-  Widget _buildTextInput() {
-    return TextField(
-      controller: _textCtrl,
-      focusNode: _focusNode,
-      style: const TextStyle(color: AppColors.onBg),
-      decoration: InputDecoration(
-        hintText: 'Typ hier...',
-        hintStyle: TextStyle(color: AppColors.muted.withValues(alpha: 0.6)),
-        filled: true,
-        fillColor: AppColors.surfaceHigh,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppColors.outline),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        suffixIcon: IconButton(
-          icon: Icon(Icons.send, color: AppColors.brand),
-          onPressed: _submitText,
-        ),
-      ),
-      onSubmitted: (_) => _submitText(),
     );
   }
 }

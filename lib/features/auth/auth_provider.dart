@@ -15,6 +15,8 @@ class AuthState {
   final String?   gender; // 'male' | 'female' | 'other'
   final bool      loading;
   final String?   error;
+  /// null = nog niet gecheckt, false = intake vereist, true = intake afgerond
+  final bool?     intakeCompleted;
 
   const AuthState({
     this.token,
@@ -25,6 +27,7 @@ class AuthState {
     this.gender,
     this.loading = false,
     this.error,
+    this.intakeCompleted,
   });
 
   AuthState copyWith({
@@ -37,15 +40,17 @@ class AuthState {
     bool?     loading,
     String?   error,
     bool      clearError = false,
+    bool?     intakeCompleted,
   }) => AuthState(
-    token:       token       ?? this.token,
-    userId:      userId      ?? this.userId,
-    email:       email       ?? this.email,
-    displayName: displayName ?? this.displayName,
-    dateOfBirth: dateOfBirth ?? this.dateOfBirth,
-    gender:      gender      ?? this.gender,
-    loading:     loading     ?? this.loading,
-    error:       clearError ? null : (error ?? this.error),
+    token:            token            ?? this.token,
+    userId:           userId           ?? this.userId,
+    email:            email            ?? this.email,
+    displayName:      displayName      ?? this.displayName,
+    dateOfBirth:      dateOfBirth      ?? this.dateOfBirth,
+    gender:           gender           ?? this.gender,
+    loading:          loading          ?? this.loading,
+    error:            clearError ? null : (error ?? this.error),
+    intakeCompleted:  intakeCompleted  ?? this.intakeCompleted,
   );
 }
 
@@ -57,7 +62,29 @@ class AuthNotifier extends Notifier<AuthState> {
     final token = await getToken();
     if (token != null) {
       state = state.copyWith(token: token);
+      await _checkIntake();
     }
+  }
+
+  Future<void> _checkIntake() async {
+    try {
+      final client = ref.read(apiClientProvider);
+      await client.get('/api/plans');
+      state = state.copyWith(intakeCompleted: true);
+    } catch (e) {
+      final msg = e.toString();
+      if (msg.contains('401')) {
+        await logout();
+        return;
+      }
+      state = state.copyWith(
+        intakeCompleted: msg.contains('404') ? false : true,
+      );
+    }
+  }
+
+  void markIntakeCompleted() {
+    state = state.copyWith(intakeCompleted: true);
   }
 
   Future<bool> login(String email, String password) async {
@@ -75,6 +102,7 @@ class AuthNotifier extends Notifier<AuthState> {
         userId:  data['user_id'],
         email:   data['email'],
       );
+      await _checkIntake();
       return true;
     } catch (e) {
       state = state.copyWith(loading: false, error: _parseError(e));
@@ -92,10 +120,11 @@ class AuthNotifier extends Notifier<AuthState> {
       });
       await saveToken(data['token']);
       state = state.copyWith(
-        loading: false,
-        token:   data['token'],
-        userId:  data['user_id'],
-        email:   data['email'],
+        loading:         false,
+        token:           data['token'],
+        userId:          data['user_id'],
+        email:           data['email'],
+        intakeCompleted: false,
       );
       return true;
     } catch (e) {
@@ -209,11 +238,13 @@ class AuthNotifier extends Notifier<AuthState> {
       final isNew = data['is_new'] as bool? ?? false;
       await saveToken(token);
       state = state.copyWith(
-        loading:     false,
-        token:       token,
-        email:       data['email'] as String? ?? '',
-        displayName: data['display_name'] as String?,
+        loading:         false,
+        token:           token,
+        email:           data['email'] as String? ?? '',
+        displayName:     data['display_name'] as String?,
+        intakeCompleted: isNew ? false : null,
       );
+      if (!isNew) await _checkIntake();
       return (true, isNew);
     } catch (e) {
       state = state.copyWith(loading: false, error: 'Inloggen mislukt. Probeer opnieuw.');

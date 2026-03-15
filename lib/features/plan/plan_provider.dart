@@ -53,11 +53,11 @@ class Week {
   });
 
   String get phaseLabel => switch (phase) {
-    'build_one' => 'Opbouw I',
-    'build_two' => 'Opbouw II',
-    'peak'      => 'Piek',
-    'taper'     => 'Tapering',
-    _           => phase,
+    'build_1' => 'Opbouw I',
+    'build_2' => 'Opbouw II',
+    'peak'    => 'Piek',
+    'taper'   => 'Tapering',
+    _         => phase,
   };
 
   List<Day> get activeDays => days.where((d) => d.sessionType != 'rest').toList();
@@ -68,7 +68,7 @@ class Week {
     phase:      j['phase'] as String,
     isRecovery: j['is_recovery'] as bool? ?? false,
     targetKm:   (j['target_km'] as num).toDouble(),
-    days:       (j['days'] as List).map((d) => Day.fromJson(d)).toList(),
+    days:       ((j['days'] ?? j['sessions']) as List).map((d) => Day.fromJson(d)).toList(),
   );
 }
 
@@ -114,9 +114,12 @@ class PlanNotifier extends Notifier<PlanState> {
       final data = await client.get('/api/plans');
       state = state.copyWith(loading: false, plan: TrainingPlan.fromJson(data));
     } catch (e, stack) {
-      final msg = e.toString().contains('404')
+      final err = e.toString();
+      final msg = err.contains('404')
           ? 'no_plan'
-          : 'Kon plan niet laden.';
+          : err.contains('401') || err.contains('403')
+              ? 'no_plan'
+              : 'Kon plan niet laden.';
       developer.log('Failed to load plan', name: 'PlanProvider', error: e, stackTrace: stack);
       state = state.copyWith(loading: false, error: msg);
     }

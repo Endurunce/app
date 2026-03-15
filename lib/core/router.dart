@@ -60,7 +60,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/plan',
     refreshListenable: notifier,
     redirect: (context, state) {
-      final loggedIn = ref.read(authProvider).token != null;
+      final auth = ref.read(authProvider);
+      final loggedIn = auth.token != null;
       final loc = state.matchedLocation;
       final onAuth = loc.startsWith('/login') ||
           loc.startsWith('/register') ||
@@ -69,6 +70,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (loc == '/') return loggedIn ? '/plan' : '/login';
       if (!loggedIn && !onAuth) return '/login';
       if (loggedIn && onAuth && !loc.startsWith('/oauth')) return '/plan';
+
+      // Block shell routes while intake status is unknown (null) or incomplete.
+      // null = _checkIntake still running; false = needs intake.
+      if (loggedIn && auth.intakeCompleted != true && loc != '/intake') {
+        return '/intake';
+      }
+      // Redirect away from intake once it's confirmed complete.
+      if (loggedIn && auth.intakeCompleted == true && loc == '/intake') {
+        return '/plan';
+      }
+
       return null;
     },
     routes: [

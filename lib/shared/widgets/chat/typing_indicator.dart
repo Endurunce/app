@@ -78,7 +78,7 @@ class _Dot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final delay = index / 3.0;
+    final delay = index * 0.2; // 0.0, 0.2, 0.4 → intervals end at 0.6, 0.8, 1.0
     final animation = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: -6.0), weight: 25),
       TweenSequenceItem(tween: Tween(begin: -6.0, end: 0.0), weight: 25),

@@ -48,6 +48,9 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
                     style: const TextStyle(color: AppColors.error)),
               );
             }
+            if (planState.plan == null) {
+              return const Center(child: CircularProgressIndicator());
+            }
             return _PlanView(plan: planState.plan!, injuries: injuries);
           },
         ),

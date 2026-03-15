@@ -63,6 +63,10 @@ class ChatFormStep {
   /// returns true given the answers collected so far.
   final bool Function(Map<String, dynamic> answers)? showIf;
 
+  /// Optional dynamic options builder — overrides [options] when provided.
+  /// Receives the answers collected so far and returns the chip options to show.
+  final List<ChatOption> Function(Map<String, dynamic> answers)? optionsBuilder;
+
   const ChatFormStep({
     required this.id,
     required this.question,
@@ -70,6 +74,7 @@ class ChatFormStep {
     this.options = const [],
     this.validator,
     this.showIf,
+    this.optionsBuilder,
   });
 }
 
@@ -106,6 +111,11 @@ class ChatForm extends StatefulWidget {
   /// Useful for navigation (e.g. `context.pop()`).
   final VoidCallback? onDone;
 
+  /// Called after [onComplete] resolves and the form transitions to completed
+  /// state. Receives the full answers map. Use this for side-effects that
+  /// should happen after the chat has finished (e.g. API calls).
+  final void Function(ChatFormResult answers)? onCompleted;
+
   /// Label for the done button shown after completion.
   final String doneButtonLabel;
 
@@ -120,6 +130,7 @@ class ChatForm extends StatefulWidget {
     this.disclaimerText,
     this.onComplete,
     this.onDone,
+    this.onCompleted,
     this.doneButtonLabel = 'Klaar',
     this.typingDelayMs = 600,
   });
@@ -201,7 +212,10 @@ class _ChatFormState extends State<ChatForm> {
   }
 
   QuickReplyState _buildQuickReplyState(ChatFormStep step) {
-    final options = step.options
+    final sourceOptions = step.optionsBuilder != null
+        ? step.optionsBuilder!(_answers)
+        : step.options;
+    final options = sourceOptions
         .map((o) => QuickReplyOption(label: o.label, value: o.value, emoji: o.emoji))
         .toList();
 
@@ -278,6 +292,8 @@ class _ChatFormState extends State<ChatForm> {
         _submitting = false;
         _completed = true;
       });
+
+      widget.onCompleted?.call(Map.unmodifiable(_answers));
     } catch (e) {
       if (!mounted) return;
       setState(() {
