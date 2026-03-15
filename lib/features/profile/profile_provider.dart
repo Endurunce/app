@@ -25,14 +25,14 @@ class UserProfile {
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> j) => UserProfile(
-    name:         j['name'] as String,
-    age:          (j['age'] as num).toInt(),
-    gender:       j['gender'] as String,
+    name:         j['name'] as String? ?? '',
+    age:          (j['age'] as num?)?.toInt() ?? 0,
+    gender:       j['gender'] as String? ?? 'other',
     raceGoal:     j['race_goal'],
     raceDate:     j['race_date'] as String?,
-    terrain:      j['terrain'] as String,
-    weeklyKm:     (j['weekly_km'] as num).toDouble(),
-    runningYears: j['running_years'] as String,
+    terrain:      j['terrain'] as String? ?? 'road',
+    weeklyKm:     (j['weekly_km'] as num?)?.toDouble() ?? 0,
+    runningYears: j['running_years'] as String? ?? 'two_to_five_years',
   );
 
   String get raceGoalLabel {
